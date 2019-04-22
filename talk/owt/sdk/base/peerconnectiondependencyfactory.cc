@@ -1,19 +1,19 @@
 // Copyright (C) <2018> Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
+#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
 #include <iostream>
 #include "talk/owt/sdk/base/customizedaudiodevicemodule.h"
 #include "talk/owt/sdk/base/encodedvideoencoderfactory.h"
-#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
 #include "webrtc/api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "webrtc/api/audio_codecs/builtin_audio_encoder_factory.h"
-#include "webrtc/rtc_base/bind.h"
-#include "webrtc/rtc_base/ssladapter.h"
-#include "webrtc/rtc_base/thread.h"
 #include "webrtc/media/base/mediachannel.h"
 #include "webrtc/media/engine/webrtcvideodecoderfactory.h"
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
 #include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/rtc_base/bind.h"
+#include "webrtc/rtc_base/ssladapter.h"
+#include "webrtc/rtc_base/thread.h"
 #include "webrtc/system_wrappers/include/field_trial_default.h"
 #if defined(WEBRTC_WIN)
 #include "talk/owt/sdk/base/win/msdkvideodecoderfactory.h"
@@ -48,8 +48,8 @@ PeerConnectionDependencyFactory::PeerConnectionDependencyFactory()
 #if defined(WEBRTC_WIN)
   if (GlobalConfiguration::GetVideoHardwareAccelerationEnabled()) {
     render_hardware_acceleration_enabled_ = true;
-    } else {
-        render_hardware_acceleration_enabled_ = false;
+  } else {
+    render_hardware_acceleration_enabled_ = false;
   }
 #endif
 #if defined(WEBRTC_IOS)
@@ -89,10 +89,20 @@ PeerConnectionDependencyFactory::GetPeerConnectionFactory() {
 void PeerConnectionDependencyFactory::
     CreatePeerConnectionFactoryOnCurrentThread() {
   RTC_LOG(LS_INFO) << "CreatePeerConnectionOnCurrentThread";
-  if (GlobalConfiguration::GetAECEnabled()
-      && GlobalConfiguration::GetAEC3Enabled()) {
+
+  // Check all OWT-specific field trials.
+  // Only when encoded input is enabled (that we're not doing encoding
+  // by ourselves) will we allow SDK to be in low latency mode.
+  if (GlobalConfiguration::GetLowLatencyStreamingEnabled()) {
+    field_trial_ += "OWT-LowLatencyMode/Enabled/";
+  }
+  if (GlobalConfiguration::GetAECEnabled() &&
+      GlobalConfiguration::GetAEC3Enabled()) {
     field_trial_ += "OWT-EchoCanceller3/Enabled/";
   }
+  int delay_bwe_weight = GlobalConfiguration::GetDelayBasedBweWeight();
+  field_trial_ +=
+      "OWT-DelayBweWeight/" + std::to_string(delay_bwe_weight) + "/";
   webrtc::field_trial::InitFieldTrialsFromString(field_trial_.c_str());
   if (!rtc::InitializeSSL()) {
     RTC_LOG(LS_ERROR) << "Failed to initialize SSL.";
@@ -120,10 +130,15 @@ void PeerConnectionDependencyFactory::
 #if defined(WEBRTC_WIN)
   if (render_hardware_acceleration_enabled_) {
     if (!encoded_frame_) {
+// Disable MSDK based factories during compilation.
+#if 0
       encoder_factory.reset(new MSDKVideoEncoderFactory());
+#endif
     }
     if (!GlobalConfiguration::GetCustomizedVideoDecoderEnabled()) {
+#if 0
       decoder_factory.reset(new MSDKVideoDecoderFactory());
+#endif
     }
   }
 #endif
@@ -145,10 +160,10 @@ void PeerConnectionDependencyFactory::
   if (GlobalConfiguration::GetCustomizedAudioInputEnabled()) {
     // Create ADM on worker thred as RegisterAudioCallback is invoked there.
     adm = worker_thread->Invoke<rtc::scoped_refptr<AudioDeviceModule>>(
-               RTC_FROM_HERE,
-               Bind(&PeerConnectionDependencyFactory::
-                    CreateCustomizedAudioDeviceModuleOnCurrentThread,
-                    this));
+        RTC_FROM_HERE,
+        Bind(&PeerConnectionDependencyFactory::
+                 CreateCustomizedAudioDeviceModuleOnCurrentThread,
+             this));
   }
 #if defined(WEBRTC_IOS)
   pc_factory_ = webrtc::CreatePeerConnectionFactory(
@@ -173,8 +188,7 @@ scoped_refptr<webrtc::PeerConnectionInterface>
 PeerConnectionDependencyFactory::CreatePeerConnectionOnCurrentThread(
     const webrtc::PeerConnectionInterface::RTCConfiguration& config,
     webrtc::PeerConnectionObserver* observer) {
-  return (pc_factory_->CreatePeerConnection(config, nullptr,
-                                            nullptr, observer))
+  return (pc_factory_->CreatePeerConnection(config, nullptr, nullptr, observer))
       .get();
 }
 void PeerConnectionDependencyFactory::CreatePeerConnectionFactory() {
@@ -206,8 +220,7 @@ PeerConnectionDependencyFactory::CreateVideoSource(
           RTC_FROM_HERE,
           Bind((rtc::scoped_refptr<VideoTrackSourceInterface>(
                    PeerConnectionFactoryInterface::*)(
-                   cricket::VideoCapturer*,
-                   const MediaConstraintsInterface*)) &
+                   cricket::VideoCapturer*, const MediaConstraintsInterface*)) &
                    PeerConnectionFactoryInterface::CreateVideoSource,
                pc_factory_.get(), capturer.release(), constraints))
       .get();
@@ -216,9 +229,10 @@ scoped_refptr<VideoTrackInterface>
 PeerConnectionDependencyFactory::CreateLocalVideoTrack(
     const std::string& id,
     webrtc::VideoTrackSourceInterface* video_source) {
-  return pc_thread_->Invoke<scoped_refptr<VideoTrackInterface>>(RTC_FROM_HERE,
-                       Bind(&PeerConnectionFactoryInterface::CreateVideoTrack,
-                            pc_factory_.get(), id, video_source))
+  return pc_thread_
+      ->Invoke<scoped_refptr<VideoTrackInterface>>(
+          RTC_FROM_HERE, Bind(&PeerConnectionFactoryInterface::CreateVideoTrack,
+                              pc_factory_.get(), id, video_source))
       .get();
 }
 scoped_refptr<AudioTrackInterface>
@@ -229,9 +243,17 @@ PeerConnectionDependencyFactory::CreateLocalAudioTrack(const std::string& id) {
   ns_enabled = GlobalConfiguration::GetNSEnabled();
   if (!aec_enabled || !agc_enabled || !ns_enabled) {
     cricket::AudioOptions options;
-    options.echo_cancellation = absl::optional<bool>(aec_enabled ? true : false);
-    options.auto_gain_control = absl::optional<bool>(agc_enabled ? true : false);
+    options.echo_cancellation =
+        absl::optional<bool>(aec_enabled ? true : false);
+    options.auto_gain_control =
+        absl::optional<bool>(agc_enabled ? true : false);
     options.noise_suppression = absl::optional<bool>(ns_enabled ? true : false);
+    options.highpass_filter = absl::optional<bool>(false);
+    options.typing_detection = absl::optional<bool>(false);
+    options.experimental_agc = absl::optional<bool>(false);
+    options.extended_filter_aec = absl::optional<bool>(false);
+    options.delay_agnostic_aec = absl::optional<bool>(false);
+    options.experimental_ns = absl::optional<bool>(false);
     options.residual_echo_detector =
         absl::optional<bool>(aec_enabled ? true : false);
     scoped_refptr<webrtc::AudioSourceInterface> audio_source =
@@ -278,7 +300,8 @@ rtc::scoped_refptr<PeerConnectionFactoryInterface>
 PeerConnectionDependencyFactory::PeerConnectionFactory() const {
   return pc_factory_;
 }
-rtc::NetworkMonitorInterface* PeerConnectionDependencyFactory::NetworkMonitor(){
+rtc::NetworkMonitorInterface*
+PeerConnectionDependencyFactory::NetworkMonitor() {
 #if defined(WEBRTC_IOS)
   pc_thread_->Invoke<void>(
       RTC_FROM_HERE,
@@ -293,15 +316,15 @@ rtc::NetworkMonitorInterface* PeerConnectionDependencyFactory::NetworkMonitor(){
 void PeerConnectionDependencyFactory::CreateNetworkMonitorOnCurrentThread() {
 #if defined(WEBRTC_IOS)
   if (!network_monitor_) {
-     network_monitor_ = new NetworkMonitorIos();
-     network_monitor_->Start();
+    network_monitor_ = new NetworkMonitorIos();
+    network_monitor_->Start();
   }
 #endif
 }
-scoped_refptr<webrtc::AudioDeviceModule>
-PeerConnectionDependencyFactory::CreateCustomizedAudioDeviceModuleOnCurrentThread() {
+scoped_refptr<webrtc::AudioDeviceModule> PeerConnectionDependencyFactory::
+    CreateCustomizedAudioDeviceModuleOnCurrentThread() {
   return CustomizedAudioDeviceModule::Create(
-     GlobalConfiguration::GetAudioFrameGenerator());
+      GlobalConfiguration::GetAudioFrameGenerator());
 }
-}
-}
+}  // namespace base
+}  // namespace owt

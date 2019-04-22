@@ -1,19 +1,20 @@
 // Copyright (C) <2018> Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
 #include <thread>
 #include <vector>
 #include "talk/owt/sdk/base/eventtrigger.h"
 #include "talk/owt/sdk/base/functionalobserver.h"
 #include "talk/owt/sdk/base/sysinfo.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
 #include "webrtc/rtc_base/logging.h"
 using namespace rtc;
 namespace owt {
 namespace p2p {
 using std::string;
 enum P2PPeerConnectionChannel::SessionState : int {
-  kSessionStateReady = 1,   // Indicate the channel is ready. This is the initial state.
+  kSessionStateReady =
+      1,  // Indicate the channel is ready. This is the initial state.
   kSessionStateOffered,     // Indicates local client has sent a user agent and
                             // waiting for an remote SDP.
   kSessionStatePending,     // Indicates local client received an user agent and
@@ -220,7 +221,8 @@ void P2PPeerConnectionChannel::Send(
   content[kTextMessageDataKey] = message;
   std::string data = rtc::JsonValueToString(content);
   if (data_channel_ != nullptr &&
-      data_channel_->state() == webrtc::DataChannelInterface::DataState::kOpen) {
+      data_channel_->state() ==
+          webrtc::DataChannelInterface::DataState::kOpen) {
     data_channel_->Send(CreateDataBuffer(data));
     RTC_LOG(LS_INFO) << "Send message: " << data;
   } else {
@@ -230,7 +232,7 @@ void P2PPeerConnectionChannel::Send(
           std::make_shared<std::string>(data));
       pending_messages_.push_back(data_copy);
     }
-    if (data_channel_ == nullptr) // Otherwise, wait for data channel ready.
+    if (data_channel_ == nullptr)  // Otherwise, wait for data channel ready.
       CreateDataChannel(kDataChannelLabelForTextMessage);
   }
   std::string id_value = std::to_string(message_id);
@@ -465,7 +467,8 @@ void P2PPeerConnectionChannel::OnMessageDeny() {
     failure_callbacks_.clear();
   }
   ChangeSessionState(kSessionStateReady);
-  for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it = observers_.begin();
+  for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it =
+           observers_.begin();
        it != observers_.end(); ++it) {
     (*it)->OnDenied(remote_id_);
   }
@@ -512,7 +515,8 @@ void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
       set_remote_sdp_task_ = msg;
     } else {
       RTC_LOG(LS_INFO) << "Post set remote desc";
-      pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteDescription, msg);
+      pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteDescription,
+                       msg);
     }
   } else if (type == "candidates") {
     string sdp_mid;
@@ -527,7 +531,8 @@ void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
     rtc::TypedMessageData<webrtc::IceCandidateInterface*>* param =
         new rtc::TypedMessageData<webrtc::IceCandidateInterface*>(
             ice_candidate);
-    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteIceCandidate, param);
+    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteIceCandidate,
+                     param);
   }
 }
 void P2PPeerConnectionChannel::OnMessageTracksAdded(
@@ -714,7 +719,8 @@ void P2PPeerConnectionChannel::OnIceConnectionChange(
         } else {
           RTC_LOG(LS_INFO) << "Detect reconnection succeed.";
         }
-      }).detach();
+      })
+          .detach();
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionClosed:
       TriggerOnStopped();
@@ -997,6 +1003,8 @@ void P2PPeerConnectionChannel::GetConnectionStats(
     }
     return;
   }
+// TODO:For low latency streaming, don't set this
+#if 0
   if (session_state_ != kSessionStateConnected) {
     if (on_failure != nullptr) {
       event_queue_->PostTask([on_failure] {
@@ -1009,6 +1017,7 @@ void P2PPeerConnectionChannel::GetConnectionStats(
     }
     return;
   }
+#endif
   RTC_LOG(LS_INFO) << "Get connection stats";
   rtc::scoped_refptr<FunctionalStatsObserver> observer =
       FunctionalStatsObserver::Create(std::move(on_success));
@@ -1032,6 +1041,8 @@ void P2PPeerConnectionChannel::GetStats(
     }
     return;
   }
+// For low latency mode we don't check the status
+#if 0
   if (session_state_ != kSessionStateConnected) {
     if (on_failure != nullptr) {
       event_queue_->PostTask([on_failure] {
@@ -1044,6 +1055,7 @@ void P2PPeerConnectionChannel::GetStats(
     }
     return;
   }
+#endif
   RTC_LOG(LS_INFO) << "Get native stats";
   rtc::scoped_refptr<FunctionalNativeStatsObserver> observer =
       FunctionalNativeStatsObserver::Create(std::move(on_success));

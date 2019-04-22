@@ -12,7 +12,7 @@
 #include <windows.h>
 #endif
 namespace owt {
-namespace base{
+namespace base {
 /** @cond */
 /// Audio processing settings.
 struct AudioProcessingSettings {
@@ -41,10 +41,12 @@ struct AudioProcessingSettings {
 /** @endcond */
 /**
  @brief configuration of global using.
- GlobalConfiguration class of setting for encoded frame and hardware accecleartion configuration.
+ GlobalConfiguration class of setting for encoded frame and hardware
+ accecleartion configuration.
 */
 class GlobalConfiguration {
   friend class PeerConnectionDependencyFactory;
+
  public:
 #if defined(WEBRTC_WIN)
   /**
@@ -55,16 +57,30 @@ class GlobalConfiguration {
     hardware_acceleration_enabled_ = enabled;
   }
 #endif
+  /**
+  @brief This function sets the SDK into low latency streaming mode.
+  @param enabled Enable low latency mode or not.
+  */
+  static void SetLowLatencyStreamingEnabled(bool enabled) {
+    low_latency_streaming_enabled_ = enabled;
+  }
   /** @cond */
   /**
    @brief This function sets the capturing frame type to be encoded video frame.
-   please be noted at present only vp8 and h.264 encoded frame input is supported.
-   If the client configuration sets preferred coded to vp9 or h265, the encoded
-   frame might not be sent out to remote.
+   please be noted at present only vp8 and h.264 encoded frame input is
+   supported. If the client configuration sets preferred coded to vp9 or h265,
+   the encoded frame might not be sent out to remote.
    @param enabled Capturing frame is encoded or not.
    */
   static void SetEncodedVideoFrameEnabled(bool enabled) {
-     encoded_frame_ = enabled;
+    encoded_frame_ = enabled;
+  }
+  /**
+   @brief This function sets the weight of delay-based BWE impact on final estimated bandwidth.
+   @param weight The weight of delay based BWE result in range of [0, 100]
+  */
+  static void SetDelayBasedBWEWeight(int weight) {
+    delay_based_bwe_weight_ = weight;
   }
   /** @endcond */
   /**
@@ -84,7 +100,8 @@ class GlobalConfiguration {
   }
 #if defined(WEBRTC_WIN) || defined(WEBRTC_LINUX)
   /**
-   @brief This function sets the customized video decoder to decode the encoded images.
+   @brief This function sets the customized video decoder to decode the encoded
+   images.
    @param Customized video decoder
    */
   static void SetCustomizedVideoDecoderEnabled(
@@ -124,6 +141,7 @@ class GlobalConfiguration {
   static void SetNSEnabled(bool enabled) {
     audio_processing_settings_.NSEnabled = enabled;
   }
+
  private:
   GlobalConfiguration() {}
   virtual ~GlobalConfiguration() {}
@@ -138,14 +156,22 @@ class GlobalConfiguration {
   static bool hardware_acceleration_enabled_;
 #endif
   /**
-   @brief This function gets whether encoded video frame input is enabled or not.
+  @breif This function get low latency streaming is enabled or not.
+  @return true or false.
+  */
+  static bool GetLowLatencyStreamingEnabled() {
+    return low_latency_streaming_enabled_;
+  }
+  static bool low_latency_streaming_enabled_;
+  /**
+   @brief This function gets whether encoded video frame input is enabled or
+   not.
    @return true or false.
    */
-  static bool GetEncodedVideoFrameEnabled() {
-     return encoded_frame_;
-  }
+  static bool GetEncodedVideoFrameEnabled() { return encoded_frame_; }
   /**
-   @brief This function gets whether the customized audio input is enabled or not.
+   @brief This function gets whether the customized audio input is enabled or
+   not.
    @return true or false.
    */
   static bool GetCustomizedAudioInputEnabled() {
@@ -182,23 +208,32 @@ class GlobalConfiguration {
   /**
    @brief This function returns audio frame generator.
    */
-  static std::unique_ptr<AudioFrameGeneratorInterface> GetAudioFrameGenerator(){
+  static std::unique_ptr<AudioFrameGeneratorInterface>
+  GetAudioFrameGenerator() {
     return std::move(audio_frame_generator_);
   }
   // Encoded video frame flag.
-   /**
+  /**
    * Default is false. If it is set to true, only streams with encoded frame can
    * be published.
    */
   static bool encoded_frame_;
+  static int delay_based_bwe_weight_;
   static std::unique_ptr<AudioFrameGeneratorInterface> audio_frame_generator_;
 #if defined(WEBRTC_WIN) || defined(WEBRTC_LINUX)
   /**
-   @brief This function returns flag indicating whether customized video decoder is enabled or not
-   @return Boolean flag indicating whether customized video decoder is enabled or not
+   @brief This function returns flag indicating whether customized video decoder
+   is enabled or not
+   @return Boolean flag indicating whether customized video decoder is enabled
+   or not
    */
   static bool GetCustomizedVideoDecoderEnabled() {
     return video_decoder_ ? true : false;
+  }
+  /**
+   @brief This function returns the weight of delay based BWE in overall bandwidth estimation.
+  */
+  static int GetDelayBasedBweWeight() { return delay_based_bwe_weight_;
   }
   /**
    @brief This function gets customized video decoder
@@ -214,6 +249,6 @@ class GlobalConfiguration {
 #endif
   static AudioProcessingSettings audio_processing_settings_;
 };
-}
-}
+}  // namespace base
+}  // namespace owt
 #endif  // OWT_BASE_GLOBALCONFIGURATION_H_

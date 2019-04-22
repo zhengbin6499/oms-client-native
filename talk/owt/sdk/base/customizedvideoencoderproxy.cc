@@ -1,8 +1,12 @@
 // Copyright (C) <2018> Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
+#include "talk/owt/sdk/base/customizedvideoencoderproxy.h"
 #include <string>
 #include <vector>
+#include "talk/owt/sdk/base/customizedencoderbufferhandle.h"
+#include "talk/owt/sdk/base/nativehandlebuffer.h"
+#include "talk/owt/sdk/include/cpp/owt/base/commontypes.h"
 #include "webrtc/api/video/video_frame.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/include/module_common_types.h"
@@ -11,10 +15,6 @@
 #include "webrtc/rtc_base/buffer.h"
 #include "webrtc/rtc_base/checks.h"
 #include "webrtc/rtc_base/logging.h"
-#include "talk/owt/sdk/base/customizedencoderbufferhandle.h"
-#include "talk/owt/sdk/base/customizedvideoencoderproxy.h"
-#include "talk/owt/sdk/base/nativehandlebuffer.h"
-#include "talk/owt/sdk/include/cpp/owt/base/commontypes.h"
 // H.264 start code length.
 #define H264_SC_LENGTH 4
 // Maximum allowed NALUs in one output frame.
@@ -30,7 +30,6 @@ CustomizedVideoEncoderProxy::CustomizedVideoEncoderProxy(
 }
 CustomizedVideoEncoderProxy::~CustomizedVideoEncoderProxy() {
   if (external_encoder_) {
-    delete external_encoder_;
     external_encoder_ = nullptr;
   }
 }
@@ -134,8 +133,12 @@ int CustomizedVideoEncoderProxy::Encode(
   }
   webrtc::EncodedImage encodedframe(data_ptr, data_size, data_size);
 #else
+  uint16_t picture_id_from_external_encoder = 0;
+  uint64_t capture_timestamp = 0;
   if (external_encoder_) {
-    if (!external_encoder_->EncodeOneFrame(buffer, request_key_frame))
+    if (!external_encoder_->EncodeOneFrame(buffer, request_key_frame,
+                                           capture_timestamp,
+                                           picture_id_from_external_encoder))
       return WEBRTC_VIDEO_CODEC_ERROR;
   }
   std::unique_ptr<uint8_t[]> data(new uint8_t[buffer.size()]);
@@ -194,6 +197,8 @@ int CustomizedVideoEncoderProxy::Encode(
     info.codecSpecific.VP9.width[0] = encodedframe._encodedWidth;
     info.codecSpecific.VP9.spatial_idx = kNoSpatialIdx;
     info.codecSpecific.VP9.temporal_idx = kNoTemporalIdx;
+  } else if (codec_type_ == webrtc::kVideoCodecH264 && external_encoder_) {
+    info.codecSpecific.H264.picture_id = picture_id_from_external_encoder;
   }
   // Generate a header describing a single fragment.
   webrtc::RTPFragmentationHeader header;

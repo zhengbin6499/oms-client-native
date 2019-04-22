@@ -1011,7 +1011,7 @@ void ConferenceClient::ParseStreamInfo(sio::message::ptr stream_info,
     if (sample_rate_obj != nullptr)
       sample_rate = sample_rate_obj->get_int();
     if (channel_num_obj != nullptr)
-      channel_num = audio_format_obj->get_int();
+      channel_num = channel_num_obj->get_int();
     AudioCodecParameters audio_codec_param(
         MediaUtils::GetAudioCodecFromString(codec), channel_num, sample_rate);
     publication_settings.audio.codec = audio_codec_param;

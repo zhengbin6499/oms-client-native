@@ -281,7 +281,7 @@ bool CustomizedAudioCapturer::RecThreadProcess() {
   }
   crit_sect_.Leave();
   int64_t cost_ms = clock_->CurrentNtpInMilliseconds() - current_time;
-  need_sleep_ms_ = 10 - cost_ms + need_sleep_ms_ - real_sleep_ms_;
+  need_sleep_ms_ = 9 - cost_ms + need_sleep_ms_ - real_sleep_ms_;
   if (need_sleep_ms_ > 0) {
     current_time = clock_->CurrentNtpInMilliseconds();
     SleepMs(need_sleep_ms_);
