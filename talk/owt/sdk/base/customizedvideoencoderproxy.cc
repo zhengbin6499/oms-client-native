@@ -152,6 +152,8 @@ int CustomizedVideoEncoderProxy::Encode(
   encodedframe._completeFrame = true;
   encodedframe.capture_time_ms_ = input_image.render_time_ms();
   encodedframe._timeStamp = input_image.timestamp();
+  encodedframe.playout_delay_.min_ms = 0;
+  encodedframe.playout_delay_.max_ms = 0;
   // VP9 requires setting the frame type according to actual frame type.
   if (codec_type_ == webrtc::kVideoCodecVP9 && data_size > 2) {
     uint8_t au_key = 1;

@@ -132,7 +132,7 @@ int32_t CustomizedAudioCapturer::StartRecording() {
   const char* thread_name = "webrtc_audio_module_capture_thread";
   thread_rec_.reset(new rtc::PlatformThread(RecThreadFunc, this, thread_name));
   thread_rec_->Start();
-  thread_rec_->SetPriority(rtc::kHighPriority);
+  thread_rec_->SetPriority(rtc::kRealtimePriority);
   return 0;
 }
 int32_t CustomizedAudioCapturer::StopRecording() {
