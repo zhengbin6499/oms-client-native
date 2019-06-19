@@ -130,6 +130,7 @@ class PeerConnectionChannel : public rtc::MessageHandler,
   // Use a map if we need more than one data channels for a PeerConnection in
   // the future.
   rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
+  rtc::scoped_refptr<webrtc::DataChannelInterface> control_data_channel_;
   MediaConstraintsImpl media_constraints_;
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions offer_answer_options_;
  private:

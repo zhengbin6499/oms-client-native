@@ -82,7 +82,8 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
                  std::function<void()> on_success,
                  std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Send message to remote user.
-  void Send(const std::string& message,
+  void Send(bool is_control,
+            const std::string& message,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Stop current WebRTC session.
@@ -162,6 +163,7 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   void CreateDataChannel(const std::string& label);
   // Send all messages in pending message list.
   void DrainPendingMessages();
+  void DrainPendingControlMessages();
   void TriggerOnStopped();
   // Cleans all variables associated with last peerconnection.
   void CleanLastPeerConnection();
@@ -215,6 +217,8 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
                                                                 // channel is
                                                                 // ready.
   std::mutex pending_messages_mutex_;
+  std::vector<std::shared_ptr<std::string>> pending_control_messages_;
+  std::mutex pending_control_messages_mutex_;
   std::unordered_map<std::string, std::function<void()>> message_success_callbacks_;
   // Indicates whether remote client supports WebRTC Plan B
   // (https://tools.ietf.org/html/draft-uberti-rtcweb-plan-00).

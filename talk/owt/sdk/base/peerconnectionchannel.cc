@@ -139,9 +139,15 @@ void PeerConnectionChannel::OnMessage(rtc::Message* msg) {
       rtc::TypedMessageData<std::string>* param =
           static_cast<rtc::TypedMessageData<std::string>*>(msg->pdata);
       webrtc::DataChannelInit config;
-      data_channel_ =
+      if (param->data() == "control") {
+        control_data_channel_ =
           peer_connection_->CreateDataChannel(param->data(), &config);
-      data_channel_->RegisterObserver(this);
+        control_data_channel_->RegisterObserver(this);
+      } else {
+        data_channel_ =
+            peer_connection_->CreateDataChannel(param->data(), &config);
+        data_channel_->RegisterObserver(this);      
+      }
       RTC_LOG(LS_INFO) << "Created data channel.";
       delete param;
       break;
