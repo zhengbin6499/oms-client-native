@@ -39,7 +39,7 @@ target_os = []
 
 ### Build
 #### Windows
-- Run `gclient sync`. It may take a long time to download large amount of data.
+- Run `gclient sync` in the directory that contains 'src'. It may take a long time to download large amount of data.
 - Go to 'src' directory, and run `gn args out/release-x64' for release build. On the prompted config setting, set: 
 ````
 rtc_use_h264 = true
