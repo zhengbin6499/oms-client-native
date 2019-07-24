@@ -19,11 +19,9 @@ Before you start, make sure you have following prerequisites installed/built:
 
 - [WebRTC stack build dependencies](https://webrtc.org/native-code/development/prerequisite-sw/).
 
-Following dependencies are for Windows only:
-
 ### Get the code
-- Make sure you clone the source code to `src` dir.
-- Create file named .gclient under the same directory of `src` dir, with below contents:
+- Make sure you clone the source code to `src` dir, that is: that is git clone -b cloudgaming https://github.com/taste1981/oms-client-native src
+- Create file named .gclient in the same directory as `src` dir, with below contents:
 
 ```
 solutions = [ 
@@ -54,7 +52,7 @@ rtc_build_examples = false
 target_cpu = "x64"
 is_debug = false
 ````
-- Run `ninja -C out/release-x64` to finish the build. Output owt.lib will be under out/release/owt/talk/owt.lib; rename it to owt-release.lib for copying to cloud-gaming dependency directories.
+- Run `ninja -C out/release-x64` to finish the build. Output owt.lib will be under out/release-x64/obj/owt/talk/owt.lib; rename it to owt-release.lib for copying to cloud-gaming dependency directories.
 - Copy the header files under src/talk/owt/sdk/include/cpp/ to the cloud-gaming include directories.
 
 ## How to contribute
