@@ -261,7 +261,7 @@ void ConferencePeerConnectionChannel::OnIceCandidatesRemoved(
   message->get_map()["id"] = sio::string_message::create(session_id_);
   sio::message::ptr remove_candidates_msg = sio::object_message::create();
   remove_candidates_msg->get_map()["type"] =
-      sio::string_message::create("remove-candidates");
+      sio::string_message::create("removed-candidates");
   sio::message::ptr removed_candidates = sio::array_message::create();
   for (auto candidate : candidates) {
     std::string candidate_string = candidate.ToString();
@@ -872,6 +872,10 @@ void ConferencePeerConnectionChannel::OnStreamError(
   std::shared_ptr<const Exception> e(
       new Exception(ExceptionType::kConferenceUnknown, error_message));
   std::shared_ptr<Stream> error_stream;
+  for (auto its = observers_.begin(); its != observers_.end(); ++its) {
+    RTC_LOG(LS_INFO) << "On stream error.";
+    (*its).get().OnStreamError(error_stream, e);
+  }
   if (published_stream_) {
     Unpublish(GetSessionId(), nullptr, nullptr);
     error_stream = published_stream_;
@@ -883,10 +887,6 @@ void ConferencePeerConnectionChannel::OnStreamError(
   if (error_stream == nullptr) {
     RTC_DCHECK(false);
     return;
-  }
-  for (auto its = observers_.begin(); its != observers_.end(); ++its) {
-    RTC_LOG(LS_INFO) << "On stream error.";
-    (*its).get().OnStreamError(error_stream, e);
   }
 }
 std::function<void()> ConferencePeerConnectionChannel::RunInEventQueue(
@@ -909,7 +909,7 @@ void ConferencePeerConnectionChannel::ResetCallbacks() {
 void ConferencePeerConnectionChannel::ClosePeerConnection() {
   RTC_LOG(LS_INFO) << "Close peer connection.";
   RTC_CHECK(pc_thread_);
-  pc_thread_->Send(RTC_FROM_HERE, this, kMessageTypeClosePeerConnection,
+  pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeClosePeerConnection,
                    nullptr);
 }
 bool ConferencePeerConnectionChannel::isMediaStreamEnded(

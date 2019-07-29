@@ -40,42 +40,23 @@ class P2PPeerConnectionChannel;
 class P2PClientObserver {
  public:
   /**
-   @brief This function will be invoked when client is disconnected from
-   signaling server.
-   */
-  virtual void OnServerDisconnected(){};
-  /**
-   @brief This function will be invoked when a remote user denied current user's
-   invitation.
-   @param remote_user_id Remote user’s ID
-   */
-  virtual void OnDenied(const std::string& remote_user_id){};
-  /**
-   @brief This function will be invoked when a chat is stopped. (This event
-   haven't been implemented yet)
-   @param remote_user_id Remote user’s ID
-   */
-  virtual void OnChatStopped(const std::string& remote_user_id){};
-  /**
-   @brief This function will be invoked when a chat is started. (This event
-   haven't been implemented yet)
-   @param remote_user_id Remote user’s ID
-   */
-  virtual void OnChatStarted(const std::string& remote_user_id){};
-  /**
    @brief This function will be invoked when received data from a remote user.
-   (This event haven't been implemented yet)
    @param remote_user_id Remote user’s ID
    @param message Message received
    */
-  virtual void OnDataReceived(const std::string& remote_user_id,
-                              const std::string message){};
+  virtual void OnMessageReceived(const std::string& remote_user_id,
+                                 const std::string message){};
   /**
    @brief This function will be invoked when a remote stream is available.
    @param stream The remote stream added.
    */
   virtual void OnStreamAdded(
       std::shared_ptr<owt::base::RemoteStream> stream){};
+  /**
+   @brief This function will be invoked when client is disconnected from
+   signaling server.
+   */
+  virtual void OnServerDisconnected(){};
 };
 /// An async client for P2P WebRTC sessions
 class P2PClient final
@@ -180,8 +161,7 @@ class P2PClient final
    @brief Send a message to remote client
    @param target_id Remote user's ID.
    @param message The message to be sent.
-   @param on_success Success callback will be invoked if send deny event
-   successfully.
+   @param on_success Success callback will be invoked if message sent successfully.
    @param on_failure Failure callback will be invoked if one of the following
    cases happened.
    1. P2PClient is disconnected from the server.
@@ -217,19 +197,13 @@ class P2PClient final
                                     std::function<void()> on_success,
                                     std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Implement P2PSignalingChannelObserver
-  virtual void OnMessage(const std::string& message, const std::string& sender);
+  virtual void OnSignalingMessage(const std::string& message, const std::string& sender);
   virtual void OnServerDisconnected();
   // Handle events from P2PPeerConnectionChannel
-  // Triggered when the WebRTC session is started.
-  virtual void OnStarted(const std::string& remote_id);
-  // Triggered when the WebRTC session is ended.
-  virtual void OnStopped(const std::string& remote_id);
-  // Triggered when remote user denied the invitation.
-  virtual void OnDenied(const std::string& remote_id);
   // Triggered when remote user send data via data channel.
   // Currently, data is string.
-  virtual void OnData(const std::string& remote_id,
-                      const std::string& message);
+  virtual void OnMessageReceived(const std::string& remote_id,
+                                 const std::string& message);
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(
       std::shared_ptr<owt::base::RemoteStream> stream);
