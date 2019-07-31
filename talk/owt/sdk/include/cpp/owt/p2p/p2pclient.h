@@ -194,6 +194,22 @@ class P2PClient final
             bool is_control,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
+   /**
+    @brief Send a message to remote client on text message channel.
+    @param target_id Remote user's ID.
+    @param message The message to be sent.
+    @param on_success Success callback will be invoked if send
+                      deny event successfully.
+    @param on_failure Failure callback will be invoked if one of
+    the following cases happened.
+    1. P2PClient is disconnected from the server.
+    2. Target ID is null or target user is offline.
+    3. There is no WebRTC session with target user.
+    */
+  void Send(const std::string& target_id,
+            const std::string& message,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
   /**
    @brief Get the connection statistowt with target client.
    @param target_id Remote user's ID.

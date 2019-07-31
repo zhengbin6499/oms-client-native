@@ -117,10 +117,18 @@ void P2PClient::Publish(
     that->event_queue_->PostTask([on_success, publication] {on_success(publication); });
   }, on_failure);
 }
+
+void P2PClient::Send(const std::string& target_id,
+    const std::string& message,
+    std::function<void()> on_success,
+    std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  Send(target_id, message, false, on_success, on_failure);
+}
+
 void P2PClient::Send(
     const std::string& target_id,
     const std::string& message,
-	bool is_control,
+    bool is_control,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   // Firstly check whether target_id is in the allowed_remote_ids_ list.
@@ -203,11 +211,11 @@ void P2PClient::OnMessage(const std::string& message,
       std::function<void(std::unique_ptr<Exception>)> failure_callback =
           pcc->GetLatestPublishFailureCallback();
       pc_channels_.erase(remote_id);
-	    auto new_pcc = GetPeerConnectionChannel(remote_id);
-	    new_pcc->OnIncomingSignalingMessage(message);
-	    new_pcc->Publish(stream, success_callback, failure_callback);
-	    return;
-	  }
+        auto new_pcc = GetPeerConnectionChannel(remote_id);
+        new_pcc->OnIncomingSignalingMessage(message);
+        new_pcc->Publish(stream, success_callback, failure_callback);
+        return;
+      }
   } else if (message.find("\"type\":\"chat-closed\"") != std::string::npos) {
     int code = 0;
     std::string error = "";
