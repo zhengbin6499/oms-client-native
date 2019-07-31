@@ -18,9 +18,13 @@ You need [Doxygen](http://www.doxygen.nl/) in your path.
 Before you start, make sure you have following prerequisites installed/built:
 
 - [WebRTC stack build dependencies](https://webrtc.org/native-code/development/prerequisite-sw/).
+- This version of cloudgaming webrtc stack require Windows SDK version 16299 to build. Make sure you have that particular version installed, and check in "Control Panel -> Programs and Features -> Windows Software Development Kit - Windows 10.0.16299.xx", right click and select "Change", check "Debugging tools for Windows" if not already.
+- If you do not have direct Internet access to Google repositories and storages, please make sure you set HTTPS_PROXY in your system enviroment;
+- Also make sure NO_AUTH_BOTO_CONFIG is set to correct boto file if you're using https proxy for gsutil downloading files from Google storage;
+- Make sure DEPOT_TOOLS_WIN_TOOLCHAIN is set to 0 in your system environment.
 
 ### Get the code
-- Make sure you clone the source code to `src` dir, that is: that is git clone -b cloudgaming https://github.com/taste1981/oms-client-native src
+- Make sure you clone the source code to `src` dir, that is: that is `git clone -b cloudgaming https://github.com/taste1981/oms-client-native src`
 - Create file named .gclient in the same directory as `src` dir, with below contents:
 
 ```
@@ -39,7 +43,8 @@ target_os = []
 
 ### Build
 #### Windows
-- Run `gclient sync` in the directory that contains 'src'. It may take a long time to download large amount of data.
+- Run `gclient sync` in the directory that contains 'src'. It may take a long time to download large amount of data. It may well fail when downloading build tools from Google storage. Check your boto file settings and proxy settings, and re-run `gclient sync` to retry.
+
 - Go to 'src' directory, and run `gn args out/release-x64' for release build. On the prompted config setting, set: 
 ````
 rtc_use_h264 = true
@@ -54,6 +59,14 @@ is_debug = false
 ````
 - Run `ninja -C out/release-x64` to finish the build. Output owt.lib will be under out/release-x64/obj/owt/talk/owt.lib; rename it to owt-release.lib for copying to cloud-gaming dependency directories.
 - Copy the header files under src/talk/owt/sdk/include/cpp/ to the cloud-gaming include directories.
+
+Please be noted the same stack can be used to build the client-side SDK as well. In that case, please add below extra config settigs when runnnig `gn args out/release-x64`:
+````
+ffmpeg_branding = "Chrome"
+woogeen_msdk_header_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\include"
+woogeen_msdk_lib_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\lib\\x64"
+````
+Please modify the woogeen_msdk_header_root and woogeen_msdk_lib_root value according to actual Media SDK installation path. Latest Media SDK for Windows can be downloaded from: [Intel Media SDK](https://software.intel.com/en-us/media-sdk/).
 
 ## How to contribute
 We warmly welcome community contributions to owt-client-native repository. If you are willing to contribute your features and ideas to OWT, follow the process below:
