@@ -463,8 +463,7 @@ void P2PPeerConnectionChannel::OnMessageStop() {
     }
     failure_callbacks_.clear();
   }
-  pc_thread_->Send(RTC_FROM_HERE, this, kMessageTypeClosePeerConnection,
-                   nullptr);
+  ClosePeerConnection();
   ChangeSessionState(kSessionStateReady);
   TriggerOnStopped();
 }
@@ -987,8 +986,7 @@ void P2PPeerConnectionChannel::Stop(
   switch (session_state_) {
     case kSessionStateConnecting:
     case kSessionStateConnected:
-      pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeClosePeerConnection,
-                       nullptr);
+      ClosePeerConnection();
       SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
@@ -1049,7 +1047,6 @@ void P2PPeerConnectionChannel::GetConnectionStats(
     return;
   }
 #endif
-  RTC_LOG(LS_INFO) << "Get connection stats";
   rtc::scoped_refptr<FunctionalStatsObserver> observer =
       FunctionalStatsObserver::Create(std::move(on_success));
   GetStatsMessage* stats_message = new GetStatsMessage(
@@ -1213,8 +1210,7 @@ void P2PPeerConnectionChannel::SendDeny(
 void P2PPeerConnectionChannel::ClosePeerConnection() {
   RTC_LOG(LS_INFO) << "Close peer connection.";
   RTC_CHECK(pc_thread_);
-  pc_thread_->Send(RTC_FROM_HERE, this, kMessageTypeClosePeerConnection,
-                   nullptr);
+  PeerConnectionChannel::ClosePc();
   ChangeSessionState(kSessionStateReady);
 }
 void P2PPeerConnectionChannel::CheckWaitedList() {

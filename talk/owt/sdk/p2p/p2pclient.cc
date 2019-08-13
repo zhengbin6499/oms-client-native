@@ -352,6 +352,8 @@ void P2PClient::OnStarted(const std::string& remote_id) {
                          &P2PClientObserver::OnChatStarted, remote_id);
 }
 void P2PClient::OnStopped(const std::string& remote_id) {
+  removed_pc_channels_.push_back(pc_channels_[remote_id]);
+  pc_channels_.erase(remote_id);
   EventTrigger::OnEvent1(observers_, event_queue_,
                          &P2PClientObserver::OnChatStopped, remote_id);
 }

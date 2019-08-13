@@ -1,0 +1,26 @@
+From 81a2f766c985127f5d0d99d828217257f405ca44 Mon Sep 17 00:00:00 2001
+From: Jianjun Zhu <jianjun.zhu@intel.com>
+Date: Tue, 9 Jul 2019 16:03:21 +0800
+Subject: [PATCH] Add Visual Studio 2019 and Preview edition support
+
+Made the code for finding the Visual Studio installation directory more generic.
+And removed unnecessary PGO code in the toolchain script.
+---
+ clang/scripts/update.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/clang/scripts/update.py b/clang/scripts/update.py
+index d9a889fff8..5d619a321d 100755
+--- a/clang/scripts/update.py
++++ b/clang/scripts/update.py
+@@ -379,6 +379,7 @@ def GetWinSDKDir():
+     '2013': 'msdia120.dll',
+     '2015': 'msdia140.dll',
+     '2017': 'msdia140.dll',
++    '2019': 'msdia140.dll',
+   }
+ 
+   # Don't let vs_toolchain overwrite our environment.
+-- 
+2.21.0.windows.1
+

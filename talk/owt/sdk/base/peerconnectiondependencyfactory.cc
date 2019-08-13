@@ -56,6 +56,7 @@ PeerConnectionDependencyFactory::PeerConnectionDependencyFactory()
   network_monitor_ = nullptr;
 #endif
   encoded_frame_ = GlobalConfiguration::GetEncodedVideoFrameEnabled();
+  pc_thread_->SetName("peerconnection_dependency_factory_thread", nullptr);
   pc_thread_->Start();
 }
 PeerConnectionDependencyFactory::~PeerConnectionDependencyFactory() {}
@@ -186,6 +187,7 @@ void PeerConnectionDependencyFactory::
 #else
 #error "Unsupported platform."
 #endif
+  pc_factory_->AddRef();
   RTC_LOG(LS_INFO) << "CreatePeerConnectionOnCurrentThread finished.";
 }
 scoped_refptr<webrtc::PeerConnectionInterface>

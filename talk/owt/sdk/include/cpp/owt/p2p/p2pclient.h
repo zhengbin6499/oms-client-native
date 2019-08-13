@@ -266,6 +266,7 @@ class P2PClient final
   std::shared_ptr<P2PSignalingChannelInterface> signaling_channel_;
   std::unordered_map<std::string, std::shared_ptr<P2PPeerConnectionChannel>>
       pc_channels_;
+  std::vector<std::shared_ptr<P2PPeerConnectionChannel>> removed_pc_channels_;
   std::string local_id_;
   std::vector<std::reference_wrapper<P2PClientObserver>> observers_;
   P2PClientConfiguration configuration_;
