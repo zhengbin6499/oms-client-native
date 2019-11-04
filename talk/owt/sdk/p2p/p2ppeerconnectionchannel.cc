@@ -228,7 +228,6 @@ void P2PPeerConnectionChannel::Send(
         data_channel_->state() ==
             webrtc::DataChannelInterface::DataState::kOpen) {
       data_channel_->Send(CreateDataBuffer(data));
-      RTC_LOG(LS_INFO) << "Send message: " << data;
     } else {
       {
         std::lock_guard<std::mutex> lock(pending_messages_mutex_);
@@ -244,7 +243,6 @@ void P2PPeerConnectionChannel::Send(
         control_data_channel_->state() ==
             webrtc::DataChannelInterface::DataState::kOpen) {
       control_data_channel_->Send(CreateDataBuffer(data));
-      RTC_LOG(LS_INFO) << "Send message: " << data;
     } else {
       {
         std::lock_guard<std::mutex> lock(pending_control_messages_mutex_);

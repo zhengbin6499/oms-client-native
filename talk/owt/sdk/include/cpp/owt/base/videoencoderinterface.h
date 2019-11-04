@@ -8,6 +8,20 @@
 #include "owt/base/commontypes.h"
 namespace owt {
 namespace base {
+
+struct EncodedImageMetaData {
+  // The picture id of frame.
+  uint16_t picture_id;
+  // Indicate if current data is the end of a frame which might be sent slice-by-slice
+  bool last_fragment = true;
+  // Capture timestamp
+  uint64_t capture_timestamp;
+  // Start encoding time in ms
+  uint64_t encoding_start;
+  // End encoding time in ms
+  uint64_t encoding_end;
+};
+
 /**
   @brief Video encoder interface
   @details Internal webrtc encoder will request from this
@@ -41,13 +55,13 @@ class VideoEncoderInterface {
    VideoEncoderInterface implementation should not assume the buffer valid.
    @param buffer Output buffer that holds the encoded data.
    @param key_frame Indicates whether we're requesting an AU representing an key frame.
-   @param capture_timestamp Timestamp for when the frame is captured.
-   @param picture_id Picture ID of encoded frame.
-   @param last_fragment Indicate if current data is the end of a frame which might be sent slice-by-slice
+   @param meta_data The returned metadata of the encoded frame.
    @return Returns true if the encoder successfully returns one frame; returns false
    if the encoder fails to encode one frame.
    */
-  virtual bool EncodeOneFrame(std::vector<uint8_t>& buffer, bool key_frame, uint64_t& capture_timestamp, uint16_t& picture_id, bool& last_fragment) = 0;
+  virtual bool EncodeOneFrame(std::vector<uint8_t>& buffer,
+                              bool key_frame,
+                              EncodedImageMetaData& meta_data) = 0;
 #endif
   /**
    @brief Release the resources that current encoder holds.

@@ -133,13 +133,11 @@ int CustomizedVideoEncoderProxy::Encode(
   }
   webrtc::EncodedImage encodedframe(data_ptr, data_size, data_size);
 #else
-  uint16_t picture_id_from_external_encoder = 0;
-  uint64_t capture_timestamp = 0;
-  bool last_fragment = false;
+  EncodedImageMetaData meta_data;
+  memset(&meta_data, 0, sizeof(meta_data));
   if (external_encoder_) {
-    if (!external_encoder_->EncodeOneFrame(
-            buffer, request_key_frame, capture_timestamp,
-            picture_id_from_external_encoder, last_fragment))
+    if (!external_encoder_->EncodeOneFrame(buffer, request_key_frame,
+                                           meta_data))
       return WEBRTC_VIDEO_CODEC_ERROR;
   }
   std::unique_ptr<uint8_t[]> data(new uint8_t[buffer.size()]);
@@ -151,12 +149,14 @@ int CustomizedVideoEncoderProxy::Encode(
   encodedframe._encodedWidth = input_image.width();
   encodedframe._encodedHeight = input_image.height();
   encodedframe._completeFrame = true;
-  encodedframe.capture_time_ms_ = input_image.render_time_ms();
+  encodedframe.capture_time_ms_ =
+      /*input_image.render_time_ms()*/ meta_data.capture_timestamp;
   encodedframe._timeStamp = input_image.timestamp();
   encodedframe.playout_delay_.min_ms = 0;
   encodedframe.playout_delay_.max_ms = 0;
-
-
+  encodedframe.timing_.encode_start_ms = meta_data.encoding_start;
+  encodedframe.timing_.encode_finish_ms = meta_data.encoding_end;
+  encodedframe.timing_.flags = webrtc::VideoSendTiming::kTriggeredByTimer;
   if (!update_ts_) {
     encodedframe.capture_time_ms_ = last_capture_timestamp_;
     encodedframe._timeStamp = last_timestamp_;
@@ -165,7 +165,7 @@ int CustomizedVideoEncoderProxy::Encode(
     last_timestamp_ = encodedframe._timeStamp;
   }
 
-  if (last_fragment)
+  if (meta_data.last_fragment)
     update_ts_ = true;
   else
     update_ts_ = false;
@@ -217,8 +217,8 @@ int CustomizedVideoEncoderProxy::Encode(
     info.codecSpecific.VP9.spatial_idx = kNoSpatialIdx;
     info.codecSpecific.VP9.temporal_idx = kNoTemporalIdx;
   } else if (codec_type_ == webrtc::kVideoCodecH264 && external_encoder_) {
-    info.codecSpecific.H264.picture_id = picture_id_from_external_encoder;
-    info.codecSpecific.H264.last_fragment_in_frame = last_fragment;
+    info.codecSpecific.H264.picture_id = meta_data.picture_id;
+    info.codecSpecific.H264.last_fragment_in_frame = meta_data.last_fragment;
   }
   // Generate a header describing a single fragment.
   webrtc::RTPFragmentationHeader header;
