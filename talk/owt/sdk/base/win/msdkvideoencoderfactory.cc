@@ -18,11 +18,12 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   // TODO(jianlin): Find a way from MSDK to check h265 HW encoding support.
   // As we have SW, GAA & HW h265 encoding support, try loading plugins might be
   // a good way to determine that.
-  bool is_h265_hw_supported = true;
+  //bool is_h265_hw_supported = true;
 #endif
 
   if (is_vp8_hw_supported) {
     supported_codecs_.push_back(cricket::VideoCodec("VP8"));
+    supported_codecs_.push_back(cricket::VideoCodec("VP9"));
   }
 
   const webrtc::H264::Level level = webrtc::H264::kLevel3_1;
@@ -47,6 +48,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   constrained_baseline.SetParam(cricket::kH264FmtpPacketizationMode, "1");
   supported_codecs_.push_back(constrained_baseline);
 
+  #if 0
   cricket::VideoCodec constrained_high(cricket::kH264CodecName);
   const webrtc::H264::ProfileLevelId constrained_high_profile(
       webrtc::H264::kProfileConstrainedHigh, level);
@@ -56,6 +58,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   constrained_high.SetParam(cricket::kH264FmtpLevelAsymmetryAllowed, "1");
   constrained_high.SetParam(cricket::kH264FmtpPacketizationMode, "1");
   supported_codecs_.push_back(constrained_high);
+#endif
 
   cricket::VideoCodec high(cricket::kH264CodecName);
   const webrtc::H264::ProfileLevelId high_profile(
@@ -68,6 +71,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   supported_codecs_.push_back(high);
 
 #ifndef DISABLE_H265
+#if 0
   if (is_h265_hw_supported) {
     cricket::VideoCodec main10_high(cricket::kH265CodecName);
     main10_high.SetParam(cricket::kH265FmtpProfileSpace, "0");
@@ -76,6 +80,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
     main10_high.SetParam(cricket::kH265FmtpLevelId, "120");
     supported_codecs_.push_back(main10_high);
   }
+#endif
 #endif
 }
 

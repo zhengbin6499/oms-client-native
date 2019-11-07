@@ -8,9 +8,10 @@
 #include "webrtc/common_types.h"
 EncodedVideoEncoderFactory::EncodedVideoEncoderFactory() {
     supported_codecs_.clear();
-    supported_codecs_.push_back(cricket::VideoCodec("VP8"));
-    supported_codecs_.push_back(cricket::VideoCodec("VP9"));
+    //supported_codecs_.push_back(cricket::VideoCodec("VP8"));
+   // supported_codecs_.push_back(cricket::VideoCodec("VP9"));
 #ifndef DISABLE_H265
+#if 0
     cricket::VideoCodec main10_high(cricket::kH265CodecName);
     main10_high.SetParam(cricket::kH265FmtpProfileSpace, "0");
     main10_high.SetParam(cricket::kH265FmtpProfileId, "1");
@@ -18,7 +19,18 @@ EncodedVideoEncoderFactory::EncodedVideoEncoderFactory() {
     main10_high.SetParam(cricket::kH265FmtpLevelId, "120");
     supported_codecs_.push_back(main10_high);
 #endif
+#endif
     const webrtc::H264::Level level = webrtc::H264::kLevel3_1;
+
+    cricket::VideoCodec baseline(cricket::kH264CodecName);
+    const webrtc::H264::ProfileLevelId baseline_profile(
+        webrtc::H264::kProfileBaseline, level);
+    baseline.SetParam(cricket::kH264FmtpProfileLevelId,
+                      *webrtc::H264::ProfileLevelIdToString(baseline_profile));
+    baseline.SetParam(cricket::kH264FmtpLevelAsymmetryAllowed, "1");
+    baseline.SetParam(cricket::kH264FmtpPacketizationMode, "1");
+    supported_codecs_.push_back(baseline);
+
     cricket::VideoCodec constrained_baseline(cricket::kH264CodecName);
     const webrtc::H264::ProfileLevelId constrained_baseline_profile(
         webrtc::H264::kProfileConstrainedBaseline, level);
@@ -29,15 +41,7 @@ EncodedVideoEncoderFactory::EncodedVideoEncoderFactory() {
     constrained_baseline.SetParam(cricket::kH264FmtpPacketizationMode, "1");
     supported_codecs_.push_back(constrained_baseline);
 
-  cricket::VideoCodec baseline(cricket::kH264CodecName);
-    const webrtc::H264::ProfileLevelId baseline_profile(
-        webrtc::H264::kProfileBaseline, level);
-    baseline.SetParam(cricket::kH264FmtpProfileLevelId,
-                      *webrtc::H264::ProfileLevelIdToString(baseline_profile));
-    baseline.SetParam(cricket::kH264FmtpLevelAsymmetryAllowed, "1");
-    baseline.SetParam(cricket::kH264FmtpPacketizationMode, "1");
-    supported_codecs_.push_back(baseline);
-
+#if 0
     cricket::VideoCodec constrained_high(cricket::kH264CodecName);
     const webrtc::H264::ProfileLevelId constrained_high_profile(
         webrtc::H264::kProfileConstrainedHigh, level);
@@ -47,6 +51,7 @@ EncodedVideoEncoderFactory::EncodedVideoEncoderFactory() {
     constrained_high.SetParam(cricket::kH264FmtpLevelAsymmetryAllowed, "1");
     constrained_high.SetParam(cricket::kH264FmtpPacketizationMode, "1");
     supported_codecs_.push_back(constrained_high);
+#endif
 
      cricket::VideoCodec high(cricket::kH264CodecName);
      const webrtc::H264::ProfileLevelId high_profile(
