@@ -203,7 +203,7 @@ void P2PPeerConnectionChannel::Publish(
 }
 
 void P2PPeerConnectionChannel::Send(
-    bool is_control,
+    bool is_reliable,
     const std::string& message,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
@@ -223,7 +223,7 @@ void P2PPeerConnectionChannel::Send(
   content[kTextMessageIdKey] = std::to_string(message_id);
   content[kTextMessageDataKey] = message;
   std::string data = rtc::JsonValueToString(content);
-  if (!is_control) {
+  if (is_reliable) {
     if (data_channel_ != nullptr &&
         data_channel_->state() ==
             webrtc::DataChannelInterface::DataState::kOpen) {
@@ -255,12 +255,18 @@ void P2PPeerConnectionChannel::Send(
         CreateDataChannel(kDataChannelLabelForControlMessage);
     }
   }
+  // For cloudgaming, don't rely on the ack to invoke the calback to
+  // reduce message exchange with peer server.
+  // Failure callback won't be invoked per spec.
   std::string id_value = std::to_string(message_id);
   if (on_success)
-    message_success_callbacks_[id_value] = on_success;
+    event_queue_->PostTask([on_success] { on_success(); });
+    // message_success_callbacks_[id_value] = on_success;
   if (on_failure) {
+#if 0  // Disabled for cloudgaming
     std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
     failure_callbacks_[id_value] = on_failure;
+#endif
   }
 }
 void P2PPeerConnectionChannel::Deny(
@@ -702,7 +708,7 @@ void P2PPeerConnectionChannel::OnDataChannel(
     if (control_data_channel_)
       control_data_channel_ = nullptr;
     control_data_channel_ = data_channel;
-    control_data_channel_->RegisterObserver(this);  
+    control_data_channel_->RegisterObserver(this);
     DrainPendingControlMessages();
   }
 }
@@ -1258,11 +1264,13 @@ void P2PPeerConnectionChannel::OnDataChannelMessage(
     RTC_LOG(LS_WARNING) << "Cannot get content from incoming text message.";
     return;
   }
-  // Send the ack for text message.
+  // Send the ack for text message. For cloud gaming we don't send this.
+#if 0
   Json::Value ack;
   ack[kMessageTypeKey] = kChatDataReceived;
   ack[kMessageDataKey] = message_id;
   SendSignalingMessage(ack);
+#endif
   //  Deal with the received text message.
   for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it =
            observers_.begin();

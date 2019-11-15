@@ -122,13 +122,13 @@ void P2PClient::Send(const std::string& target_id,
     const std::string& message,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
-  Send(target_id, message, false, on_success, on_failure);
+  Send(target_id, message, true, on_success, on_failure);
 }
 
 void P2PClient::Send(
     const std::string& target_id,
     const std::string& message,
-    bool is_control,
+    bool is_reliable,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   // Firstly check whether target_id is in the allowed_remote_ids_ list.
@@ -146,7 +146,7 @@ void P2PClient::Send(
   }
   // Secondly use pcc to send the message.
   auto pcc = GetPeerConnectionChannel(target_id);
-  pcc->Send(is_control, message, on_success, on_failure);
+  pcc->Send(is_reliable, message, on_success, on_failure);
 }
 void P2PClient::Stop(
     const std::string& target_id,

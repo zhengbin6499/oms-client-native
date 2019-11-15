@@ -144,6 +144,8 @@ void PeerConnectionChannel::OnMessage(rtc::Message* msg) {
           static_cast<rtc::TypedMessageData<std::string>*>(msg->pdata);
       webrtc::DataChannelInit config;
       if (param->data() == "control") {
+        // For control data channel, we allow it to be un-reliable
+        config.maxRetransmits = 0;
         control_data_channel_ =
           peer_connection_->CreateDataChannel(param->data(), &config);
         control_data_channel_->RegisterObserver(this);

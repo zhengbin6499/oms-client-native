@@ -180,7 +180,7 @@ class P2PClient final
    @brief Send a message to remote client
    @param target_id Remote user's ID.
    @param message The message to be sent.
-   @param is_control Message is to be sent over control data channel other than text message channel.
+   @param is_reliable Message delivery is reliable or not.
    @param on_success Success callback will be invoked if send deny event
    successfully.
    @param on_failure Failure callback will be invoked if one of the following
@@ -191,7 +191,7 @@ class P2PClient final
    */
   void Send(const std::string& target_id,
             const std::string& message,
-            bool is_control,
+            bool is_reliable,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
    /**
