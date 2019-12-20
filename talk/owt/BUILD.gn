@@ -159,6 +159,12 @@ static_library("owt_sdk_base") {
       "sdk/base/windowcapturer.cc",
       "sdk/base/windowcapturer.h",
     ]
+
+    if (owt_use_gauge) {
+      # Use guage library for telemetry
+      include_dirs += [ owt_gauge_header_root ]
+      defines += [ "INTEL_TELEMETRY" ]
+    }
   }
 
   if (woogeen_msdk_header_root != "") {

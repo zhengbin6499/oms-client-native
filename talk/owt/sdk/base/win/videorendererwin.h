@@ -51,6 +51,9 @@ class WebrtcVideoRendererD3D9Impl
   rtc::scoped_refptr<IDirect3DTexture9> m_texture_;
   rtc::scoped_refptr<IDirect3DVertexBuffer9> m_vertex_buffer_;
   FILE* render_latency_;
+#ifdef INTEL_TELEMETRY
+  uint64_t last_render_invoke_ms_ = 0;
+#endif
 };
 }  // namespace base
 }  // namespace owt

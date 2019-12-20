@@ -148,11 +148,13 @@ void PeerConnectionChannel::OnMessage(rtc::Message* msg) {
         config.maxRetransmits = 0;
         control_data_channel_ =
           peer_connection_->CreateDataChannel(param->data(), &config);
-        control_data_channel_->RegisterObserver(this);
+        if (control_data_channel_)
+          control_data_channel_->RegisterObserver(this);
       } else {
         data_channel_ =
             peer_connection_->CreateDataChannel(param->data(), &config);
-        data_channel_->RegisterObserver(this);      
+        if (data_channel_)
+          data_channel_->RegisterObserver(this);
       }
       RTC_LOG(LS_INFO) << "Created data channel.";
       delete param;
