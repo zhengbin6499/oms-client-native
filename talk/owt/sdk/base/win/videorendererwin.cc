@@ -9,6 +9,9 @@
 #include "webrtc/media/base/videocommon.h"
 //#include "webrtc/typedefs.h"
 #include "rtc_base/logging.h"
+#ifdef INTEL_TELEMETRY
+#include "measures.h"
+#endif
 
 using namespace rtc;
 namespace owt {
@@ -101,7 +104,18 @@ void WebrtcVideoRendererD3D9Impl::OnFrame(
         return;
       }
     }
+
     uint64_t end_ms = Clock::GetRealTimeClock()->TimeInMilliseconds();
+#ifdef INTEL_TELEMETRY
+    if (last_render_invoke_ms_ != 0) {
+      uint64_t decode_gap = end_ms -last_render_invoke_ms_;
+      rtc::Telemetry::RecordSample(gauges::kWebRTCRenderGapMeasure,
+                                   (int)decode_gap);
+
+    }
+    last_render_invoke_ms_ = end_ms;
+#endif
+
     hr = pDevice->Present(nullptr, nullptr, wnd_, nullptr);
     if (render_latency_ != nullptr)
       fprintf(render_latency_, "%d\t%lld\t%lld\r\n", in_ts, now_ms, end_ms);
@@ -173,6 +187,15 @@ void WebrtcVideoRendererD3D9Impl::OnFrame(
       m_d3d_device_->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
       m_d3d_device_->EndScene();
 
+      uint64_t end_ms = Clock::GetRealTimeClock()->TimeInMilliseconds();
+#ifdef INTEL_TELEMETRY
+      if (last_render_invoke_ms_ != 0) {
+        uint64_t decode_gap = end_ms - last_render_invoke_ms_;
+        rtc::Telemetry::RecordSample(gauges::kWebRTCRenderGapMeasure,
+                                     (int)decode_gap);
+      }
+      last_render_invoke_ms_ = end_ms;
+#endif
       m_d3d_device_->Present(nullptr, nullptr, wnd_, nullptr);
     }
   }

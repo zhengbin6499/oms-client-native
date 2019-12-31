@@ -1265,7 +1265,7 @@ void P2PPeerConnectionChannel::OnDataChannelMessage(
     return;
   }
   // Send the ack for text message. For cloud gaming we don't send this.
-#if 0
+#if 1
   Json::Value ack;
   ack[kMessageTypeKey] = kChatDataReceived;
   ack[kMessageDataKey] = message_id;

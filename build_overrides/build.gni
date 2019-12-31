@@ -76,4 +76,7 @@ declare_args() {
   owt_gpra_lib_root = ""
   owt_gpra_header_root = ""
   owt_use_gpra = false
+
+  owt_gauge_header_root = ""
+  owt_use_gauge = false
 }
