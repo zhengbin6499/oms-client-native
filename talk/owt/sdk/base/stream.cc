@@ -339,9 +339,10 @@ std::shared_ptr<LocalStream> LocalStream::Create(
 }
 std::shared_ptr<LocalStream> LocalStream::Create(
     std::shared_ptr<LocalCustomizedStreamParameters> parameters,
-    VideoEncoderInterface* encoder) {
-  std::shared_ptr<LocalStream> stream(new LocalStream(parameters, encoder));
-  return stream;
+    std::shared_ptr<EncodedStreamProvider> encoder) {
+    std::shared_ptr<LocalStream> stream(
+        new LocalStream(parameters, encoder));
+    return stream;
 }
 LocalStream::LocalStream(const LocalCameraStreamParameters& parameters,
                          int& error_code)
@@ -548,8 +549,7 @@ LocalStream::LocalStream(
 }
 LocalStream::LocalStream(
     std::shared_ptr<LocalCustomizedStreamParameters> parameters,
-    VideoEncoderInterface* encoder)
-    : media_constraints_(new MediaConstraintsImpl) {
+    std::shared_ptr<EncodedStreamProvider> encoder) : media_constraints_(new MediaConstraintsImpl) {
   if (!parameters->VideoEnabled() && !parameters->AudioEnabled()) {
     RTC_LOG(LS_WARNING) << "Create LocalStream without video and audio.";
   }
