@@ -95,6 +95,8 @@ static_library("owt_sdk_base") {
     "sdk/base/sysinfo.cc",
     "sdk/base/sysinfo.h",
     "sdk/base/cursorutils.cc",
+    "sdk/base/webrtcaudiorendererimpl.cc",
+    "sdk/base/webrtcaudiorendererimpl.h",
     "sdk/base/webrtcvideorendererimpl.cc",
     "sdk/base/webrtcvideorendererimpl.h",
     "sdk/include/cpp/owt/base/clientconfiguration.h",
@@ -105,6 +107,7 @@ static_library("owt_sdk_base") {
     "sdk/include/cpp/owt/base/localcamerastreamparameters.h",
     "sdk/include/cpp/owt/base/logging.h",
     "sdk/include/cpp/owt/base/stream.h",
+    "sdk/include/cpp/owt/base/audioplayerinterface.h",
     "sdk/include/cpp/owt/base/videodecoderinterface.h",
     "sdk/include/cpp/owt/base/videorendererinterface.h",
   ]
