@@ -7,6 +7,7 @@ namespace base {
 #if defined(WEBRTC_WIN)
 // Enable hardware acceleration by default is on.
 bool GlobalConfiguration::hardware_acceleration_enabled_ = true;
+ID3D11Device* GlobalConfiguration::d3d11_decoding_device_ = nullptr;
 #endif
 bool GlobalConfiguration::low_latency_streaming_enabled_ = false;
 bool GlobalConfiguration::log_latency_to_file_enabled_ = false;

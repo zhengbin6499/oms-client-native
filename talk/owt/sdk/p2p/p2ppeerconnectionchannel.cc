@@ -260,10 +260,10 @@ void P2PPeerConnectionChannel::Send(
   // Failure callback won't be invoked per spec.
   std::string id_value = std::to_string(message_id);
   if (on_success)
-    event_queue_->PostTask([on_success] { on_success(); });
-    // message_success_callbacks_[id_value] = on_success;
+    //event_queue_->PostTask([on_success] { on_success(); });
+    message_success_callbacks_[id_value] = on_success;
   if (on_failure) {
-#if 0  // Disabled for cloudgaming
+#if 1  // Disabled for cloudgaming
     std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
     failure_callbacks_[id_value] = on_failure;
 #endif

@@ -10,6 +10,7 @@
 #endif
 #if defined(WEBRTC_WIN)
 #include <windows.h>
+#include <d3d11.h>
 #endif
 namespace owt {
 namespace base {
@@ -56,6 +57,16 @@ class GlobalConfiguration {
   static void SetVideoHardwareAccelerationEnabled(bool enabled) {
     hardware_acceleration_enabled_ = enabled;
   }
+
+  /**
+   @breif This function sets the d3d11 device for the decoder if hardware
+   acceleration is turned on. If hardware acceleration is not turned on, this
+   device will be used for creating D3D11 texture for renderer only.
+   @param d3d11_device The device used for decoding.
+  */
+  static void SetD3DDeviceForDecoding(ID3D11Device* d3d11_device) {
+    d3d11_decoding_device_ = d3d11_device;
+  }
 #endif
   /**
   @brief This function sets the SDK into low latency streaming mode.
@@ -83,7 +94,8 @@ class GlobalConfiguration {
     encoded_frame_ = enabled;
   }
   /**
-   @brief This function sets the weight of delay-based BWE impact on final estimated bandwidth.
+   @brief This function sets the weight of delay-based BWE impact on final
+   estimated bandwidth.
    @param weight The weight of delay based BWE result in range of [0, 100]
   */
   static void SetDelayBasedBWEWeight(int weight) {
@@ -161,6 +173,15 @@ class GlobalConfiguration {
     return hardware_acceleration_enabled_;
   }
   static bool hardware_acceleration_enabled_;
+
+  /**
+   @brief This function gets the D3D11Device used for decoding/rendering.
+   @return The D3D11Device handle sets by application.
+  */
+  static ID3D11Device* GetD3D11DeviceForDecoding() {
+    return d3d11_decoding_device_;
+  }
+  static ID3D11Device* d3d11_decoding_device_;
 #endif
   /**
   @breif This function get low latency streaming is enabled or not.
@@ -243,10 +264,10 @@ class GlobalConfiguration {
     return video_decoder_ ? true : false;
   }
   /**
-   @brief This function returns the weight of delay based BWE in overall bandwidth estimation.
+   @brief This function returns the weight of delay based BWE in overall
+   bandwidth estimation.
   */
-  static int GetDelayBasedBweWeight() { return delay_based_bwe_weight_;
-  }
+  static int GetDelayBasedBweWeight() { return delay_based_bwe_weight_; }
   /**
    @brief This function gets customized video decoder
    @return Customized video decoder

@@ -16,6 +16,7 @@
 #include "webrtc/rtc_base/thread.h"
 #include "webrtc/system_wrappers/include/field_trial_default.h"
 #if defined(WEBRTC_WIN)
+#include <d3d11.h>
 #include "talk/owt/sdk/base/win/msdkvideodecoderfactory.h"
 #include "talk/owt/sdk/base/win/msdkvideoencoderfactory.h"
 #elif defined(WEBRTC_IOS)
@@ -96,7 +97,7 @@ void PeerConnectionDependencyFactory::
   if (GlobalConfiguration::GetLowLatencyStreamingEnabled()) {
     field_trial_ += "OWT-LowLatencyMode/Enabled/";
   }
-  
+
   if (GlobalConfiguration::GetLatencyLoggingEnabled()) {
     field_trial_ += "OWT-Log-Latency-To-File/Enabled/";
   }
@@ -142,7 +143,9 @@ void PeerConnectionDependencyFactory::
     }
     if (!GlobalConfiguration::GetCustomizedVideoDecoderEnabled()) {
 #if defined(OWT_USE_MSDK)
-      decoder_factory.reset(new MSDKVideoDecoderFactory());
+      ID3D11Device* d3d11_device =
+          GlobalConfiguration::GetD3D11DeviceForDecoding();
+      decoder_factory.reset(new MSDKVideoDecoderFactory(d3d11_device));
 #endif
     }
   }

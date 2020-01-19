@@ -8,7 +8,7 @@
 namespace owt {
 namespace base {
 
-MSDKVideoDecoderFactory::MSDKVideoDecoderFactory() {
+MSDKVideoDecoderFactory::MSDKVideoDecoderFactory(ID3D11Device* d3d11_device_external) {
   supported_codec_types_.clear();
   
   supported_codec_types_.push_back(webrtc::kVideoCodecVP8);
@@ -24,6 +24,7 @@ MSDKVideoDecoderFactory::MSDKVideoDecoderFactory() {
     supported_codec_types_.push_back(webrtc::kVideoCodecH265);
   }
 #endif
+  external_device_ = d3d11_device_external;
 }
 
 MSDKVideoDecoderFactory::~MSDKVideoDecoderFactory() {
@@ -37,12 +38,12 @@ webrtc::VideoDecoder* MSDKVideoDecoderFactory::CreateVideoDecoder(webrtc::VideoC
     supported_codec_types_.begin(); it != supported_codec_types_.end();
     ++it) {
     if (*it == type && type == webrtc::kVideoCodecVP8) {
-      return new owt::base::MSDKVideoDecoder(type);
+      return new owt::base::MSDKVideoDecoder(type, external_device_);
     } else if (*it == type && type == webrtc::kVideoCodecH264) {
-      return new owt::base::MSDKVideoDecoder(type);
+      return new owt::base::MSDKVideoDecoder(type, external_device_);
 #ifndef DISABLE_H265
     } else if (*it == type && type == webrtc::kVideoCodecH265) {
-      return new MSDKVideoDecoder(type);
+      return new MSDKVideoDecoder(type, external_device_);
 #endif
     }
   }
