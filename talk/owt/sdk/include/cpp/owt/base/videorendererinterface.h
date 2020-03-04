@@ -96,6 +96,13 @@ struct D3D11Handle {
   ID3D11VideoDevice* d3d11_video_device;
   ID3D11VideoContext* context;
 };
+struct D3D11VAHandle {
+  ID3D11Texture2D* texture;
+  int array_index;
+  ID3D11Device* d3d11_device;
+  ID3D11VideoDevice* d3d11_video_device;
+  ID3D11VideoContext* context;
+};
 #endif
 }  // namespace base
 }  // namespace owt

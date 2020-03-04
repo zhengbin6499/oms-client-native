@@ -131,9 +131,11 @@ static_library("owt_sdk_base") {
     "//third_party/webrtc/system_wrappers:metrics_default",
     "//third_party/webrtc/system_wrappers:runtime_enabled_features_default",
     "//third_party/webrtc/system_wrappers:system_wrappers_default",
+    "//third_party/ffmpeg:ffmpeg",
   ]
   include_dirs = [
     "sdk/include/cpp",
+    #"include",
     "//third_party",
   ]
 
@@ -165,6 +167,8 @@ static_library("owt_sdk_base") {
       "sdk/base/win/videorendererd3d11.h",
       "sdk/base/windowcapturer.cc",
       "sdk/base/windowcapturer.h",
+      "sdk/base/win/d3d11va_h264_decoder.cc",
+      "sdk/base/win/d3d11va_h264_decoder.h",
     ]
 
     if (owt_use_gauge) {

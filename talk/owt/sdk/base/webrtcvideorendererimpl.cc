@@ -24,7 +24,7 @@ void WebrtcVideoRendererImpl::OnFrame(const webrtc::VideoFrame& frame) {
           webrtc::VideoFrameBuffer::Type::kNative) {
 #if defined(WEBRTC_WIN)
     // This is D3D11Handle passed. Pass that directly to the attached renderer.
-    D3D11Handle* native_handle = reinterpret_cast<D3D11Handle*>(
+    D3D11VAHandle* native_handle = reinterpret_cast<D3D11VAHandle*>(
         reinterpret_cast<owt::base::NativeHandleBuffer*>(
             frame.video_frame_buffer().get())
             ->native_handle());
@@ -36,6 +36,7 @@ void WebrtcVideoRendererImpl::OnFrame(const webrtc::VideoFrame& frame) {
     ID3D11VideoDevice* render_video_device = native_handle->d3d11_video_device;
     ID3D11Texture2D* texture = native_handle->texture;
     ID3D11VideoContext* render_context = native_handle->context;
+    int index = native_handle->array_index;
 
     uint16_t width = frame.video_frame_buffer()->width();
     uint16_t height = frame.video_frame_buffer()->height();
@@ -46,7 +47,7 @@ void WebrtcVideoRendererImpl::OnFrame(const webrtc::VideoFrame& frame) {
     if (render_device == nullptr || render_video_device == nullptr || texture == nullptr)
       return;
 
-    D3D11Handle* render_ptr = new D3D11Handle{texture, render_device,
+    D3D11VAHandle* render_ptr = new D3D11VAHandle{texture, index, render_device,
         render_video_device, render_context};
 
     Resolution resoluton(frame.width(), frame.height());

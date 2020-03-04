@@ -4,6 +4,7 @@
 
 #include "talk/owt/sdk/base/win/msdkvideodecoderfactory.h"
 #include "talk/owt/sdk/base/win/msdkvideodecoder.h"
+#include "talk/owt/sdk/base/win/d3d11va_h264_decoder.h"
 
 namespace owt {
 namespace base {
@@ -34,13 +35,14 @@ webrtc::VideoDecoder* MSDKVideoDecoderFactory::CreateVideoDecoder(webrtc::VideoC
   if (supported_codec_types_.empty()) {
     return nullptr;
   }
+  RTC_LOG(LS_ERROR) << "VideoDecoderFactory: try to setup decoder.";
   for (std::vector<webrtc::VideoCodecType>::const_iterator it =
     supported_codec_types_.begin(); it != supported_codec_types_.end();
     ++it) {
     if (*it == type && type == webrtc::kVideoCodecVP8) {
       return new owt::base::MSDKVideoDecoder(type, external_device_);
     } else if (*it == type && type == webrtc::kVideoCodecH264) {
-      return new owt::base::MSDKVideoDecoder(type, external_device_);
+      return new owt::base::H264DXVADecoderImpl(external_device_);
 #ifndef DISABLE_H265
     } else if (*it == type && type == webrtc::kVideoCodecH265) {
       return new MSDKVideoDecoder(type, external_device_);
