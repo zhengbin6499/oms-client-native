@@ -24,7 +24,7 @@ Before you start, make sure you have following prerequisites installed/built:
 - Make sure DEPOT_TOOLS_WIN_TOOLCHAIN is set to 0 in your system environment.
 
 ### Get the code
-- Make sure you clone the source code to `src` dir, that is: that is `git clone -b cloudgaming https://github.com/taste1981/oms-client-native src`
+- Make sure you clone the source code to `src` dir, that is: that is `git clone -b gameanywhere https://github.com/taste1981/oms-client-native src`
 - Create file named .gclient in the same directory as `src` dir, with below contents:
 
 ```
@@ -32,7 +32,7 @@ solutions = [
   {  
      "managed": False,  
      "name": "src",  
-     "url": "https://github.com/open-webrtc-toolkit/owt-client-native.git",  
+     "url": "https://github.com/taste1981/oms-client-native.git",  
      "custom_deps": {},  
      "deps_file": "DEPS",  
      "safesync_url": "",  
@@ -54,6 +54,10 @@ use_lld = false
 rtc_include_tests = false
 woogeen_include_tests = false
 rtc_build_examples = false
+rtc_enable_protobuf = false
+use_rtti = false
+is_clang = false
+treat_warnings_as_errors = false
 target_cpu = "x64"
 is_debug = false
 ````
@@ -73,6 +77,24 @@ woogeen_msdk_header_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media S
 woogeen_msdk_lib_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\lib\\x64"
 ````
 Please modify the woogeen_msdk_header_root and woogeen_msdk_lib_root value according to actual Media SDK installation path. Latest Media SDK for Windows can be downloaded from: [Intel Media SDK](https://software.intel.com/en-us/media-sdk/).
+
+Typically when building for client-side SDK we would require openssl to be used. In that case, please add following settings to your gn args (for example):
+````
+woogeen_use_openssl = true
+woogeen_openssl_header_root = "C:\ssl_110h_64\include"
+woogeen_openssl_lib_root = "C:\ssl_110h_64\lib"
+````
+
+You should point to openssl's installation dir instead of source dir here.
+
+On both server-side and client side, if you would like to turn on telemetry for webrtc, following gn args needs to be included (for example):
+````
+owt_use_gauge = true
+owt_gauge_header_root = "d:\telemetry"
+````
+
+The gauge header root is the folder that contains "measure.h" that defines all possible telemetry metrics. At runtime, we would require gauge.dll to be present, and TELEMETRY_WEBRTC_ENABLE environmental
+variable to be set to "1" to turn telemetry on.
 
 ## How to contribute
 We warmly welcome community contributions to owt-client-native repository. If you are willing to contribute your features and ideas to OWT, follow the process below:

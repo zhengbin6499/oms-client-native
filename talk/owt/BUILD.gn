@@ -53,11 +53,16 @@ if (!is_ios) {
       ":owt_sdk_base",
       ":owt_sdk_conf",
       ":owt_sdk_p2p",
-      "//third_party/protobuf:protobuf_lite",
       "//third_party/webrtc",
       "//third_party/webrtc:webrtc",
       "//third_party/webrtc/api:libjingle_peerconnection_api",
     ]
+
+    if (rtc_enable_protobuf) {
+      deps += [
+        "//third_party/protobuf:protobuf_lite",
+      ]
+    }
     complete_static_lib = true
   }
 }
@@ -161,14 +166,8 @@ static_library("owt_sdk_base") {
       "sdk/base/win/d3dnativeframe.h",
       "sdk/base/win/videorendererwin.cc",
       "sdk/base/win/videorendererwin.h",
-      "sdk/base/win/d3d11device.cc",
-      "sdk/base/win/d3d11device.h",
-      "sdk/base/win/videorendererd3d11.cc",
-      "sdk/base/win/videorendererd3d11.h",
       "sdk/base/windowcapturer.cc",
       "sdk/base/windowcapturer.h",
-      "sdk/base/win/d3d11va_h264_decoder.cc",
-      "sdk/base/win/d3d11va_h264_decoder.h",
     ]
 
     if (owt_use_gauge) {
@@ -198,6 +197,12 @@ static_library("owt_sdk_base") {
       "sdk/base/win/sysmem_allocator.cc",
       "sdk/base/win/msdkvideobase.cc",
       "sdk/base/win/msdkvideobase.h",
+      "sdk/base/win/d3d11va_h264_decoder.cc",
+      "sdk/base/win/d3d11va_h264_decoder.h",
+      "sdk/base/win/d3d11device.cc",
+      "sdk/base/win/d3d11device.h",
+      "sdk/base/win/videorendererd3d11.cc",
+      "sdk/base/win/videorendererd3d11.h",
     ]
     defines += [ "OWT_USE_MSDK" ]
   }

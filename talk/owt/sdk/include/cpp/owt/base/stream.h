@@ -120,7 +120,9 @@ class Stream {
   WebrtcVideoRendererImpl* renderer_impl_;
   WebrtcAudioRendererImpl* audio_renderer_impl_;
 #if defined(WEBRTC_WIN)
+#if defined(OWT_USE_MSDK)
   WebrtcVideoRendererD3D11Impl* d3d11_renderer_impl_;
+#endif
 #endif
   StreamSourceInfo source_;
  private:
