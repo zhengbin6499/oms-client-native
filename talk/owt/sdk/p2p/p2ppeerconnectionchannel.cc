@@ -382,7 +382,7 @@ void P2PPeerConnectionChannel::OnIncomingSignalingMessage(
     const std::string& message) {
   if (ended_)
     return;
-  RTC_LOG(LS_INFO) << "OnIncomingMessage: " << message;
+  //RTC_LOG(LS_INFO) << "OnIncomingMessage: " << message;
   RTC_DCHECK(!message.empty());
   Json::Reader reader;
   Json::Value json_message;
@@ -600,7 +600,7 @@ void P2PPeerConnectionChannel::OnMessageTracksAdded(
 void P2PPeerConnectionChannel::OnMessageDataReceived(std::string& id) {
   // Here comes the message id for its callback accordingly.
   if (message_success_callbacks_.find(id) == message_success_callbacks_.end()) {
-    RTC_LOG(LS_WARNING) << "Received unknown data with message ID: " << id;
+    //RTC_LOG(LS_WARNING) << "Received unknown data with message ID: " << id;
     return;
   }
   std::function<void()> callback = message_success_callbacks_[id];

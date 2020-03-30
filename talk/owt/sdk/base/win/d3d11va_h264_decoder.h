@@ -56,7 +56,7 @@ class H264DXVADecoderImpl : public webrtc::H264Decoder {
   // Reports statistics with histograms.
   void ReportInit();
   void ReportError();
-
+  int64_t GetFrameNumber(const uint8_t* frame_data, size_t frame_length);
   webrtc::DecodedImageCallback* decoded_image_callback_;
 
   bool has_reported_init_;

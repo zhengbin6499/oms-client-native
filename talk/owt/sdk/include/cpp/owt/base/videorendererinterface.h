@@ -102,6 +102,7 @@ struct D3D11VAHandle {
   ID3D11Device* d3d11_device;
   ID3D11VideoDevice* d3d11_video_device;
   ID3D11VideoContext* context;
+  int64_t frame_num;
 };
 #endif
 }  // namespace base

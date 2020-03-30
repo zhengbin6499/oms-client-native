@@ -37,6 +37,7 @@ void WebrtcVideoRendererImpl::OnFrame(const webrtc::VideoFrame& frame) {
     ID3D11Texture2D* texture = native_handle->texture;
     ID3D11VideoContext* render_context = native_handle->context;
     int index = native_handle->array_index;
+    int64_t frame_num = native_handle->frame_num;
 
     uint16_t width = frame.video_frame_buffer()->width();
     uint16_t height = frame.video_frame_buffer()->height();
@@ -48,7 +49,7 @@ void WebrtcVideoRendererImpl::OnFrame(const webrtc::VideoFrame& frame) {
       return;
 
     D3D11VAHandle* render_ptr = new D3D11VAHandle{texture, index, render_device,
-        render_video_device, render_context};
+        render_video_device, render_context, frame_num};
 
     Resolution resoluton(frame.width(), frame.height());
     std::unique_ptr<VideoBuffer> video_buffer(

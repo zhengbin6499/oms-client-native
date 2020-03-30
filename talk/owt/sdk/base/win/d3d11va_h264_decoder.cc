@@ -37,6 +37,8 @@ enum H264DecoderImplEvent {
 
 }  // namespace
 
+static const uint8_t frame_number_sei_guid[16] = {0xef, 0xc8, 0xe7, 0xb0, 0x26,
+    0x26, 0x47, 0xfd, 0x9d, 0xa3, 0x49, 0x4f, 0x60, 0xb8, 0x5b, 0xf0};
 static enum AVPixelFormat hw_pix_fmt;
 static enum AVPixelFormat get_hw_format(AVCodecContext* ctx,
                                         const enum AVPixelFormat* pix_fmts) {
@@ -285,10 +287,13 @@ int32_t H264DXVADecoderImpl::Decode(const webrtc::EncodedImage& input_image,
     RTC_LOG(LS_ERROR) << "Invalid input_image buffer handle.";
     goto fail;
   }
+  int64_t frame_num = GetFrameNumber(input_image._buffer, input_image._length);
+  decoder_ctx->reordered_opaque = frame_num;
+
   int result = avcodec_send_packet(decoder_ctx, &packet);
   if (result < 0) {
-    RTC_LOG(LS_ERROR) << "Send packet returned error: " << result;
-    return WEBRTC_VIDEO_CODEC_ERROR;
+RTC_LOG(LS_ERROR) << "Send packet returned error: " << result;
+return WEBRTC_VIDEO_CODEC_ERROR;
   }
 
   // Consume buffer until we have a frame.
@@ -303,7 +308,8 @@ int32_t H264DXVADecoderImpl::Decode(const webrtc::EncodedImage& input_image,
       av_frame_free(&frame);
       RTC_LOG(LS_VERBOSE) << "No frame. Return from decoder.";
       return WEBRTC_VIDEO_CODEC_OK;
-    } else if (result < 0) {
+    }
+    else if (result < 0) {
       RTC_LOG(LS_ERROR) << "Error happend during decoding.";
       goto fail;
     }
@@ -322,7 +328,7 @@ int32_t H264DXVADecoderImpl::Decode(const webrtc::EncodedImage& input_image,
       if (decoded_image_callback_) {
         if (!d3d11_device_ || !d3d11_video_device_ || !d3d11_video_context_) {
           RTC_LOG(LS_ERROR)
-              << "Invalid d3d11 context to be passed to renderer.";
+            << "Invalid d3d11 context to be passed to renderer.";
           goto fail;
         }
         // Should we only send the d3d11device, and let renderer derive video
@@ -332,16 +338,17 @@ int32_t H264DXVADecoderImpl::Decode(const webrtc::EncodedImage& input_image,
         surface_handle_->d3d11_video_device = d3d11_video_device_.p;
         surface_handle_->context = d3d11_video_context_.p;
         surface_handle_->array_index = index;
+        surface_handle_->frame_num = frame->reordered_opaque;
         rtc::scoped_refptr<owt::base::NativeHandleBuffer> buffer =
-            new rtc::RefCountedObject<owt::base::NativeHandleBuffer>(
-                (void*)surface_handle_.get(), texture_desc.Width,
-                texture_desc.Height);
+          new rtc::RefCountedObject<owt::base::NativeHandleBuffer>(
+          (void*)surface_handle_.get(), texture_desc.Width,
+            texture_desc.Height);
         webrtc::VideoFrame decoded_frame(buffer, input_image.Timestamp(), 0,
-                                         webrtc::kVideoRotation_0);
+          webrtc::kVideoRotation_0);
         decoded_frame.set_ntp_time_ms(input_image.ntp_time_ms_);
         decoded_frame.set_timestamp(input_image.Timestamp());
         decoded_image_callback_->Decoded(decoded_frame);
-        
+
       }
       av_frame_free(&frame);
     }
@@ -353,6 +360,52 @@ fail:
   return WEBRTC_VIDEO_CODEC_ERROR;
 }
 
+// Helper function to extract the prefix-SEI.
+int64_t H264DXVADecoderImpl::GetFrameNumber(const uint8_t* frame_data,
+  size_t frame_size) {
+  if (frame_size < 24)  // with prefix-frame-num sei, frame size needs to be at least 24 bytes.
+    goto failed;
+
+  const uint8_t* head = frame_data;
+  const uint8_t* tail = frame_data + frame_size - 4;
+  unsigned int payload_size = 0;
+  int frame_number = -1;
+
+  while (head < tail) {
+    if (head[0]) {
+      head++;
+      continue;
+    }
+    if (head[1]) {
+      head += 2;
+      continue;
+    }
+    if (head[2]) {
+      head += 3;
+      continue;
+    }
+    if (head[3] != 0x01) {
+      head++;
+      continue;
+    }
+    if ((head[4] & 0x1f) == 6) {
+      if (head[5] == 5) { // user data unregistered.
+        payload_size = head[6];
+        if (payload_size > frame_size - 4 - 4) //. 4-byte start code + 4 byte NAL HDR/Payload Type/Size/RBSP
+          goto failed;
+        for (int i = 7; i < 23; i++) {
+          if (head[i] != frame_number_sei_guid[i - 7]) {
+            goto failed;
+          }
+        }
+        frame_number = head[23] + (head[24] << 8) + (head[25] << 16) + (head[26] << 24);
+        return frame_number;
+      }
+    }
+  }
+failed:
+  return -1;
+}
 const char* H264DXVADecoderImpl::ImplementationName() const {
   return "OWTD3D11VA";
 }
