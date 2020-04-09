@@ -102,7 +102,8 @@ struct D3D11VAHandle {
   ID3D11Device* d3d11_device;
   ID3D11VideoDevice* d3d11_video_device;
   ID3D11VideoContext* context;
-  int64_t frame_num;
+  uint8_t side_data[OWT_ENCODED_IMAGE_SIDE_DATA_SIZE_MAX];
+  size_t side_data_size;
 };
 #endif
 }  // namespace base

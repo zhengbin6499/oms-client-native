@@ -27,6 +27,7 @@ const AVPixelFormat kPixelFormatFullRange = AV_PIX_FMT_YUVJ420P;
 const size_t kYPlaneIndex = 0;
 const size_t kUPlaneIndex = 1;
 const size_t kVPlaneIndex = 2;
+static const int kMaxSideDataListSize = 20;
 
 // Used by histograms. Values of entries should not be changed.
 enum H264DecoderImplEvent {
@@ -287,8 +288,11 @@ int32_t H264DXVADecoderImpl::Decode(const webrtc::EncodedImage& input_image,
     RTC_LOG(LS_ERROR) << "Invalid input_image buffer handle.";
     goto fail;
   }
-  int64_t frame_num = GetFrameNumber(input_image._buffer, input_image._length);
-  decoder_ctx->reordered_opaque = frame_num;
+  GetSideData(input_image._buffer, input_image._length, current_side_data_);
+  if (current_side_data_.size() > 0) {
+    side_data_list_[input_image.Timestamp()] = current_side_data_;
+  }
+  decoder_ctx->reordered_opaque = (int64_t)input_image.Timestamp();
 
   int result = avcodec_send_packet(decoder_ctx, &packet);
   if (result < 0) {
@@ -331,6 +335,22 @@ return WEBRTC_VIDEO_CODEC_ERROR;
             << "Invalid d3d11 context to be passed to renderer.";
           goto fail;
         }
+
+        uint32_t pts = static_cast<uint32_t>(frame->reordered_opaque);
+        size_t side_data_size = 0;
+        RtlZeroMemory(&surface_handle_->side_data[0],
+                      OWT_ENCODED_IMAGE_SIDE_DATA_SIZE_MAX);
+        if (side_data_list_.find(pts) != side_data_list_.end()) {
+          side_data_size = side_data_list_[pts].size();
+          for (int i = 0; i < side_data_size; i++) {
+            surface_handle_->side_data[i] = side_data_list_[pts][i];
+          }
+          side_data_list_.erase(pts);
+          if (side_data_list_.size() > kMaxSideDataListSize) {
+            // If side_data_list_ grows too large, clear it.
+            side_data_list_.clear();
+          }
+        }
         // Should we only send the d3d11device, and let renderer derive video
         // device and context by itself?
         surface_handle_->texture = texture;
@@ -338,7 +358,7 @@ return WEBRTC_VIDEO_CODEC_ERROR;
         surface_handle_->d3d11_video_device = d3d11_video_device_.p;
         surface_handle_->context = d3d11_video_context_.p;
         surface_handle_->array_index = index;
-        surface_handle_->frame_num = frame->reordered_opaque;
+        surface_handle_->side_data_size = side_data_size;
         rtc::scoped_refptr<owt::base::NativeHandleBuffer> buffer =
           new rtc::RefCountedObject<owt::base::NativeHandleBuffer>(
           (void*)surface_handle_.get(), texture_desc.Width,
@@ -361,51 +381,38 @@ fail:
 }
 
 // Helper function to extract the prefix-SEI.
-int64_t H264DXVADecoderImpl::GetFrameNumber(const uint8_t* frame_data,
-  size_t frame_size) {
+int64_t H264DXVADecoderImpl::GetSideData(const uint8_t* frame_data,
+  size_t frame_size, std::vector<uint8_t>& side_data) {
+  side_data.clear();
   if (frame_size < 24)  // with prefix-frame-num sei, frame size needs to be at least 24 bytes.
     goto failed;
 
   const uint8_t* head = frame_data;
-  const uint8_t* tail = frame_data + frame_size - 4;
   unsigned int payload_size = 0;
-  int frame_number = -1;
 
-  while (head < tail) {
-    if (head[0]) {
-      head++;
-      continue;
-    }
-    if (head[1]) {
-      head += 2;
-      continue;
-    }
-    if (head[2]) {
-      head += 3;
-      continue;
-    }
-    if (head[3] != 0x01) {
-      head++;
-      continue;
-    }
-    if ((head[4] & 0x1f) == 6) {
-      if (head[5] == 5) { // user data unregistered.
-        payload_size = head[6];
-        if (payload_size > frame_size - 4 - 4) //. 4-byte start code + 4 byte NAL HDR/Payload Type/Size/RBSP
+  if (head[0] != 0 || head[1] != 0 || head[2] != 0 || head[3] != 1) {
+    goto failed;
+  }
+  if ((head[4] & 0x1f) == 0x06) {
+    if (head[5] == 0x05) { // user data unregistered.
+      payload_size = head[6];
+      if (payload_size > frame_size - 4 - 4 || payload_size < 17) //. 4-byte start code + 4 byte NAL HDR/Payload Type/Size/RBSP
+        goto failed;
+      for (int i = 7; i < 23; i++) {
+        if (head[i] != frame_number_sei_guid[i - 7]) {
           goto failed;
-        for (int i = 7; i < 23; i++) {
-          if (head[i] != frame_number_sei_guid[i - 7]) {
-            goto failed;
-          }
         }
-        frame_number = head[23] + (head[24] << 8) + (head[25] << 16) + (head[26] << 24);
-        return frame_number;
       }
+      // Read the entire payload
+      for (unsigned int i = 0; i < payload_size - 16; i++)
+        side_data.push_back(head[i + 23]);
+      return payload_size;
     }
   }
 failed:
   return -1;
 }
+
 const char* H264DXVADecoderImpl::ImplementationName() const {
   return "OWTD3D11VA";
 }

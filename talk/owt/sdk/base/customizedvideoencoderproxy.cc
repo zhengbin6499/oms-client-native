@@ -22,6 +22,11 @@
 using namespace rtc;
 namespace owt {
 namespace base {
+
+static const uint8_t frame_number_sei_guid[16] = {
+    0xef, 0xc8, 0xe7, 0xb0, 0x26, 0x26, 0x47, 0xfd,
+    0x9d, 0xa3, 0x49, 0x4f, 0x60, 0xb8, 0x5b, 0xf0};
+
 CustomizedVideoEncoderProxy::CustomizedVideoEncoderProxy(
     webrtc::VideoCodecType type)
     : callback_(nullptr), external_encoder_(nullptr) {
@@ -134,17 +139,44 @@ int CustomizedVideoEncoderProxy::Encode(
   webrtc::EncodedImage encodedframe(data_ptr, data_size, data_size);
 #else
   EncodedImageMetaData meta_data;
-  memset(&meta_data, 0, sizeof(meta_data));
+  meta_data.capture_timestamp = 0;
+  meta_data.encoding_end = meta_data.encoding_start = 0;
+  meta_data.picture_id = 0;
+  meta_data.last_fragment = true;
   if (external_encoder_) {
     if (!external_encoder_->EncodeOneFrame(buffer, request_key_frame,
                                            meta_data))
       return WEBRTC_VIDEO_CODEC_ERROR;
   }
-  std::unique_ptr<uint8_t[]> data(new uint8_t[buffer.size()]);
+  // Query the metadata's side_data and populate it into prefix-sei.
+  auto side_data_ptr = meta_data.encoded_image_sidedata_get();
+  auto side_data_size = meta_data.encoded_image_sidedata_size();
+  if (side_data_size > OWT_ENCODED_IMAGE_SIDE_DATA_SIZE_MAX) {
+    RTC_LOG(LS_ERROR) << "Invalid side data size";
+    return WEBRTC_VIDEO_CODEC_ERROR;
+  }
+  // construct the SEI. index 0-22 is the sei overhead, and last byte is RBSP trailing.
+  std::unique_ptr<uint8_t[]> data(new uint8_t[buffer.size() + side_data_size + 24]);
   uint8_t* data_ptr = data.get();
   uint32_t data_size = static_cast<uint32_t>(buffer.size());
-  std::copy(buffer.begin(), buffer.end(), data_ptr);
-  webrtc::EncodedImage encodedframe(data_ptr, buffer.size(), buffer.size());
+  if (side_data_ptr && side_data_size) {
+    data_ptr[0] = data_ptr[1] = data_ptr[2] = 0;
+    data_ptr[3] = 0x01;  // start-code: byte 0-3
+    data_ptr[4] = 0x06;  // NAL-type: SEI
+    data_ptr[5] = 0x05;  // userdata unregistered
+    data_ptr[6] = 16 + side_data_size; // payload size
+    for (int i = 0; i < 16; i++) {
+      data_ptr[i + 7] = frame_number_sei_guid[i];
+    }
+    memcpy(data_ptr + 23, side_data_ptr, side_data_size);
+    data_ptr[side_data_size + 23] = 0x80;
+    meta_data.encoded_image_sidedata_free();
+    std::copy(buffer.begin(), buffer.end(), data_ptr + side_data_size + 24);
+    data_size += side_data_size + 24;
+  } else {
+    std::copy(buffer.begin(), buffer.end(), data_ptr);
+  }
+  webrtc::EncodedImage encodedframe(data_ptr, data_size, data_size);
 #endif
   encodedframe._encodedWidth = input_image.width();
   encodedframe._encodedHeight = input_image.height();

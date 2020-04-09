@@ -11,6 +11,7 @@
 #include "webrtc/media/engine/webrtcvideodecoderfactory.h"
 #include "webrtc/media/engine/webrtcvideoencoderfactory.h"
 #include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/p2p/client/basicportallocator.h"
 #include "webrtc/rtc_base/bind.h"
 #include "webrtc/rtc_base/ssladapter.h"
 #include "webrtc/rtc_base/thread.h"
@@ -124,6 +125,10 @@ void PeerConnectionDependencyFactory::
   RTC_CHECK(worker_thread->Start() && signaling_thread->Start() &&
             network_thread->Start())
       << "Failed to start threads";
+  network_manager_ =
+      std::make_shared<rtc::BasicNetworkManager>();
+  packet_socket_factory_ =
+      std::make_shared<rtc::BasicPacketSocketFactory>(network_thread);
 #if defined(WEBRTC_IOS)
   // Use webrtc::VideoEn(De)coderFactory on iOS.
   std::unique_ptr<VideoEncoderFactory> encoder_factory;
@@ -197,7 +202,15 @@ scoped_refptr<webrtc::PeerConnectionInterface>
 PeerConnectionDependencyFactory::CreatePeerConnectionOnCurrentThread(
     const webrtc::PeerConnectionInterface::RTCConfiguration& config,
     webrtc::PeerConnectionObserver* observer) {
-  return (pc_factory_->CreatePeerConnection(config, nullptr, nullptr, observer))
+  std::unique_ptr<cricket::PortAllocator> port_allocator;
+  port_allocator.reset(new cricket::BasicPortAllocator(network_manager_.get(), packet_socket_factory_.get()));
+  int min_port = 0;
+  int max_port = 0;
+  GlobalConfiguration::GetIcePortAllocationRanges(min_port, max_port);
+  if (min_port > 0 && max_port > 0 && max_port >= min_port) {
+    port_allocator->SetPortRange(min_port, max_port);
+  }
+  return (pc_factory_->CreatePeerConnection(config, std::move(port_allocator), nullptr, observer))
       .get();
 }
 void PeerConnectionDependencyFactory::CreatePeerConnectionFactory() {

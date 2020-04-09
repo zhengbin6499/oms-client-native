@@ -5,8 +5,10 @@
 #ifndef OWT_BASE_WIN_D3D11VA_H264_DECODER_H_
 #define OWT_BASE_WIN_D3D11VA_H264_DECODER_H_
 
+#include <map>
 #include <memory>
 #include "modules/video_coding/codecs/h264/include/h264.h"
+#include <unordered_map>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -56,7 +58,7 @@ class H264DXVADecoderImpl : public webrtc::H264Decoder {
   // Reports statistics with histograms.
   void ReportInit();
   void ReportError();
-  int64_t GetFrameNumber(const uint8_t* frame_data, size_t frame_length);
+  int64_t GetSideData(const uint8_t* frame_data, size_t frame_length, std::vector<uint8_t>& side_data);
   webrtc::DecodedImageCallback* decoded_image_callback_;
 
   bool has_reported_init_;
@@ -68,6 +70,8 @@ class H264DXVADecoderImpl : public webrtc::H264Decoder {
   CComPtr<ID3D11VideoDevice> d3d11_video_device_;
   CComPtr<ID3D11VideoContext> d3d11_video_context_;
   std::unique_ptr<D3D11VAHandle> surface_handle_;
+  std::vector<uint8_t> current_side_data_;
+  std::unordered_map<uint32_t, std::vector<uint8_t>> side_data_list_;
   AVBufferRef* hw_device_ctx = nullptr;
   AVCodecContext* decoder_ctx = nullptr;
   AVCodec* decoder = nullptr;

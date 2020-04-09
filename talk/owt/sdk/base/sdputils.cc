@@ -164,7 +164,7 @@ std::string SdpUtils::SetPreferCodecs(const std::string& sdp,
   std::vector<std::string> kept_codec_values;
   if (!is_audio) {
     // Get red and ulpfec payload type if any.
-    bool has_red = false, has_ulpfec = false;
+    bool has_red = false, has_ulpfec = false, has_flexfec = false;
     std::regex reg_red_map(
         "a=rtpmap:(\\d+) red\\/\\d+(?=[\r]?[\n]?)",
         std::regex_constants::icase);
@@ -185,6 +185,15 @@ std::string SdpUtils::SetPreferCodecs(const std::string& sdp,
       ulpfec_codec_value = ulpfec_map_match[1];
       has_ulpfec = true;
     }
+    std::regex reg_flexfec_map("a=rtpmap:(\\d+) flexfec-03\\/\\d+(?=[\r]?[\n]?)",
+                           std::regex_constants::icase);
+    std::smatch flexfec_map_match;
+    std::string flexfec_codec_value;
+    search_result = std::regex_search(sdp, flexfec_map_match, reg_flexfec_map);
+    if (search_result && flexfec_map_match.size() != 0) {
+      flexfec_codec_value = flexfec_map_match[1];
+      has_flexfec = true;
+    }
     if (has_red) {
       kept_codec_values.push_back(red_codec_value);
       for (auto& rtx_value : rtx_maps) {
@@ -200,6 +209,10 @@ std::string SdpUtils::SetPreferCodecs(const std::string& sdp,
             kept_codec_values.push_back(rtx_value.first);
         }
       }
+    }
+    if (has_flexfec) {
+      kept_codec_values.push_back(flexfec_codec_value);
+      // flex-fec does not involve rtx so we don't search its rtx association.
     }
   }
   for (auto& codec_name : codec_names) {

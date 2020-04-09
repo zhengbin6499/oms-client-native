@@ -69,6 +69,13 @@ class GlobalConfiguration {
   }
 #endif
   /**
+   @brief This function sets the minimum and maximum port number for webrtc
+   connection.
+   @param min_port minimum port number
+   @param max_port maximum port number
+  */
+  static void SetIcePortAllocationRange(int min_port, int max_port);
+  /**
   @brief This function sets the SDK into low latency streaming mode.
   @param enabled Enable low latency mode or not.
   */
@@ -183,6 +190,19 @@ class GlobalConfiguration {
   }
   static ID3D11Device* d3d11_decoding_device_;
 #endif
+  /**
+   @brief This function gets the minimum & maximum port to be used for webrtc
+   connection.
+   @param min_port returned minimum port number to be used
+   @param max_port returned maximum port number to be used
+  */
+  static void GetIcePortAllocationRanges(int& min_port, int& max_port) {
+    min_port = min_port_;
+    max_port = max_port_;
+    return;
+  }
+  static int min_port_;
+  static int max_port_;
   /**
   @breif This function get low latency streaming is enabled or not.
   @return true or false.

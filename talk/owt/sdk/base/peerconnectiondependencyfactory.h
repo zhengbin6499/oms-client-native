@@ -7,6 +7,9 @@
 #include "webrtc/api/peerconnectioninterface.h"
 #include "webrtc/api/mediastreaminterface.h"
 #include "webrtc/rtc_base/bind.h"
+#include "webrtc/rtc_base/network.h"
+#include "webrtc/p2p/base/basicpacketsocketfactory.h"
+
 namespace owt {
 namespace base {
 using webrtc::MediaStreamInterface;
@@ -87,6 +90,8 @@ class PeerConnectionDependencyFactory : public rtc::RefCountInterface {
   rtc::NetworkMonitorInterface* network_monitor_;
 #endif
   std::string field_trial_;
+  std::shared_ptr<rtc::BasicNetworkManager> network_manager_;
+  std::shared_ptr<rtc::BasicPacketSocketFactory> packet_socket_factory_;
 };
 }
 }  // namespace owt
