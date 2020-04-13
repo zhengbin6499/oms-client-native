@@ -92,14 +92,29 @@ struct VideoSenderReport {
 };
 /// Define video receiver report
 struct VideoReceiverReport {
-  VideoReceiverReport(int64_t bytes_rcvd, int32_t packets_rcvd, int32_t packets_lost,
-                      int32_t fir_count, int32_t pli_count, int32_t nack_count, int32_t rcvd_frame_height,
-                      int32_t rcvd_frame_width, int32_t framerate_rcvd, int32_t framerate_output,
-                      int32_t delay, std::string codec_name, int32_t jitter)
-      : bytes_rcvd(bytes_rcvd), packets_rcvd(packets_rcvd), packets_lost(packets_lost)
-      , fir_count(fir_count), pli_count(pli_count), nack_count(nack_count)
-      , frame_resolution_rcvd(Resolution(rcvd_frame_width, rcvd_frame_height)), framerate_output(framerate_output)
-      , delay(delay), codec_name(codec_name), jitter(jitter) {}
+  VideoReceiverReport(int64_t bytes_rcvd,
+                      int32_t packets_rcvd,
+                      int32_t packets_lost,
+                      int32_t fir_count,
+                      int32_t pli_count,
+                      int32_t nack_count,
+                      int32_t rcvd_frame_height,
+                      int32_t rcvd_frame_width,
+                      int32_t framerate_rcvd,
+                      int32_t framerate_output,
+                      int32_t delay,
+                      std::string codec_name,
+                      int32_t jitter)
+      : bytes_rcvd(bytes_rcvd),
+        packets_rcvd(packets_rcvd),
+        packets_lost(packets_lost),
+        fir_count(fir_count),
+        pli_count(pli_count),
+        nack_count(nack_count),
+        frame_resolution_rcvd(Resolution(rcvd_frame_width, rcvd_frame_height)),
+        framerate_rcvd(framerate_rcvd),
+        framerate_output(framerate_output),
+        delay(delay), codec_name(codec_name), jitter(jitter) {}
   /// Video bytes received
   int64_t bytes_rcvd;
   /// Video packets received
