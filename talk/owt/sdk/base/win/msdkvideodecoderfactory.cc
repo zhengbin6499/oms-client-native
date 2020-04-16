@@ -45,7 +45,7 @@ webrtc::VideoDecoder* MSDKVideoDecoderFactory::CreateVideoDecoder(webrtc::VideoC
       return new owt::base::H264DXVADecoderImpl(external_device_);
 #ifndef DISABLE_H265
     } else if (*it == type && type == webrtc::kVideoCodecH265) {
-      return new MSDKVideoDecoder(type, external_device_);
+      return new owt::base::H264DXVADecoderImpl(external_device_);
 #endif
     }
   }

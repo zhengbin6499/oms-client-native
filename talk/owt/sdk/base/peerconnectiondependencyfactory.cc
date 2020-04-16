@@ -107,6 +107,10 @@ void PeerConnectionDependencyFactory::
       GlobalConfiguration::GetAEC3Enabled()) {
     field_trial_ += "OWT-EchoCanceller3/Enabled/";
   }
+  int link_mtu = GlobalConfiguration::GetLatencyLoggingEnabled();
+  if (link_mtu > 0) {
+    field_trial_ += "OWT-LinkMTU/" + std::to_string(link_mtu) + "/";
+  }
   int delay_bwe_weight = GlobalConfiguration::GetDelayBasedBweWeight();
   field_trial_ +=
       "OWT-DelayBweWeight/" + std::to_string(delay_bwe_weight) + "/";

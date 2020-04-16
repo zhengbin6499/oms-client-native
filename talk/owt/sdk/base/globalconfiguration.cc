@@ -9,8 +9,9 @@ namespace base {
 bool GlobalConfiguration::hardware_acceleration_enabled_ = true;
 ID3D11Device* GlobalConfiguration::d3d11_decoding_device_ = nullptr;
 #endif
-int GlobalConfiguration::min_port_ = 0;
-int GlobalConfiguration::max_port_ = 0;
+int GlobalConfiguration::link_mtu_ = 0; // not set;
+int GlobalConfiguration::min_port_ = 0; // not set;
+int GlobalConfiguration::max_port_ = 0; // not set;
 bool GlobalConfiguration::low_latency_streaming_enabled_ = false;
 bool GlobalConfiguration::log_latency_to_file_enabled_ = false;
 bool GlobalConfiguration::encoded_frame_ = false;

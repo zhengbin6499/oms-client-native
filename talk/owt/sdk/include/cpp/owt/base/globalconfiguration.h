@@ -69,12 +69,22 @@ class GlobalConfiguration {
   }
 #endif
   /**
+   @brief This sets the link MTU
+   @param mtu_size The link mtu
+  */
+  static void SetLinkMTU(int mtu_size) {
+    link_mtu_ = mtu_size;
+  }
+  /**
    @brief This function sets the minimum and maximum port number for webrtc
    connection.
    @param min_port minimum port number
    @param max_port maximum port number
   */
-  static void SetIcePortAllocationRange(int min_port, int max_port);
+  static void SetIcePortAllocationRange(int min_port, int max_port) {
+    min_port_ = min_port;
+    max_port_ = max_port;
+  }
   /**
   @brief This function sets the SDK into low latency streaming mode.
   @param enabled Enable low latency mode or not.
@@ -190,6 +200,10 @@ class GlobalConfiguration {
   }
   static ID3D11Device* d3d11_decoding_device_;
 #endif
+  static int GetLinkMTU() {
+    return link_mtu_;
+  }
+  static int link_mtu_;
   /**
    @brief This function gets the minimum & maximum port to be used for webrtc
    connection.

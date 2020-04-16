@@ -54,7 +54,7 @@ class H264DXVADecoderImpl : public webrtc::H264Decoder {
  private:
   bool IsInitialized() const;
   int InitHwContext(AVCodecContext* ctx, const enum AVHWDeviceType type);
-  int PrepareHwDecoder();
+  int PrepareHwDecoder(webrtc::VideoCodecType codec_type);
   // Reports statistics with histograms.
   void ReportInit();
   void ReportError();

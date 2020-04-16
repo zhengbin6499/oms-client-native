@@ -18,7 +18,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   // TODO(jianlin): Find a way from MSDK to check h265 HW encoding support.
   // As we have SW, GAA & HW h265 encoding support, try loading plugins might be
   // a good way to determine that.
-  //bool is_h265_hw_supported = true;
+  bool is_h265_hw_supported = true;
 #endif
 
   if (is_vp8_hw_supported) {
@@ -71,7 +71,7 @@ MSDKVideoEncoderFactory::MSDKVideoEncoderFactory(){
   supported_codecs_.push_back(high);
 
 #ifndef DISABLE_H265
-#if 0
+#if 1
   if (is_h265_hw_supported) {
     cricket::VideoCodec main10_high(cricket::kH265CodecName);
     main10_high.SetParam(cricket::kH265FmtpProfileSpace, "0");
