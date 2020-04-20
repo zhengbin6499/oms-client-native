@@ -272,6 +272,7 @@ class P2PClient final
   P2PClientConfiguration configuration_;
   mutable std::mutex remote_ids_mutex_;
   std::vector<std::string> allowed_remote_ids_;
+  mutable std::mutex pc_channels_mutex_;
 };
 }
 }
