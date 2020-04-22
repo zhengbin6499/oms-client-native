@@ -100,12 +100,45 @@ int CustomizedVideoEncoderProxy::Encode(
     encoder_event_callback_->RequestKeyFrame();
   }
 
-  std::unique_ptr<uint8_t[]> data(new uint8_t[encoder_buffer_handle->buffer_length_]);
+  auto side_data_size =
+      encoder_buffer_handle->meta_data_.encoded_image_sidedata_size();
+  auto side_data_ptr =
+      encoder_buffer_handle->meta_data_.encoded_image_sidedata_get();
+  if (side_data_size > OWT_ENCODED_IMAGE_SIDE_DATA_SIZE_MAX) {
+    return WEBRTC_VIDEO_CODEC_ERROR;
+  }
+
+  // construct the SEI. index 0-22 is the sei overhead, and last byte is RBSP
+  std::unique_ptr<uint8_t[]> data(new uint8_t[encoder_buffer_handle->buffer_length_ + side_data_size + 24]);
   uint8_t* data_ptr = data.get();
   uint32_t data_size =
       static_cast<uint32_t>(encoder_buffer_handle->buffer_length_);
-  memcpy(data_ptr, encoder_buffer_handle->buffer_,
-         encoder_buffer_handle->buffer_length_);
+
+  if (codec_type_ != webrtc::kVideoCodecH264 && side_data_size > 0) {
+    encoder_buffer_handle->meta_data_.encoded_image_sidedata_free();
+  }
+
+  // SEI prefix is only enabled for H.264.
+  if (codec_type_ == webrtc::kVideoCodecH264 && side_data_ptr && side_data_size) {
+    data_ptr[0] = data_ptr[1] = data_ptr[2] = 0;
+    data_ptr[3] = 0x01; // start code: byte 0-3
+    data_ptr[4] = 0x06; // NAL-type: SEI
+    data_ptr[5] = 0x05; // userdata unregistered
+    data_ptr[6] = 16 + side_data_size; // payload size
+    for (int i = 0; i < 16; i++) {
+      data_ptr[i + 7] = frame_number_sei_guid[i];
+    }
+    memcpy(data_ptr + 23, side_data_ptr, side_data_size);
+    data_ptr[side_data_size + 23] = 0x80;
+    encoder_buffer_handle->meta_data_.encoded_image_sidedata_free();
+    memcpy(data_ptr + side_data_size + 24, encoder_buffer_handle->buffer_,
+           encoder_buffer_handle->buffer_length_);
+    data_size += side_data_size + 24;
+  } else {
+    memcpy(data_ptr, encoder_buffer_handle->buffer_,
+           encoder_buffer_handle->buffer_length_);
+  }
+
   webrtc::EncodedImage encodedframe(data_ptr, data_size, data_size);
 
   encodedframe._encodedWidth = input_image.width();
@@ -186,6 +219,14 @@ int CustomizedVideoEncoderProxy::Encode(
     info.codecSpecific.H264.last_fragment_in_frame =
         encoder_buffer_handle->meta_data_.last_fragment;
   }
+#ifndef DISABLE_H265
+  else if (codec_type_ == webrtc::kVideoCodecH265) {
+    info.codecSpecific.H265.picture_id =
+        encoder_buffer_handle->meta_data_.picture_id;
+    info.codecSpecific.H265.last_fragment_in_frame =
+        encoder_buffer_handle->meta_data_.last_fragment;
+  }
+#endif
   // Generate a header describing a single fragment.
   webrtc::RTPFragmentationHeader header;
   memset(&header, 0, sizeof(header));

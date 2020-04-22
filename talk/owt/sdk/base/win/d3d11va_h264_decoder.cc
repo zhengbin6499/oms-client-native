@@ -155,6 +155,7 @@ int H264DXVADecoderImpl::PrepareHwDecoder(webrtc::VideoCodecType codec_type) {
   AVCodecID codec_id = codec_type == webrtc::VideoCodecType::kVideoCodecH264
                            ? AV_CODEC_ID_H264
                            : AV_CODEC_ID_HEVC;
+
   decoder = avcodec_find_decoder(codec_id);
   if (!decoder) {
     RTC_LOG(LS_ERROR) << "Decoder not found by avcodec_find_decoder.";
@@ -201,7 +202,7 @@ int32_t H264DXVADecoderImpl::InitDecode(const webrtc::VideoCodec* codec_settings
   if (codec_settings &&
       (codec_settings->codecType != webrtc::kVideoCodecH264 
 #ifndef DISABLE_H265
-      || codec_settings->codecType != webrtc::kVideoCodecH265)
+      && codec_settings->codecType != webrtc::kVideoCodecH265)
 #endif
   ) {
     RTC_LOG(LS_ERROR) << "in H264DXVADecoderImpl: codec mismatch.";

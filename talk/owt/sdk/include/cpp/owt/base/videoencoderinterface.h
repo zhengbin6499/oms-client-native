@@ -53,7 +53,7 @@ struct EncodedImageMetaData {
     return side_data;
   }
   // Get side data ptr.
-  uint8_t* encoded_image_sidedata_get() { return side_data; }
+  uint8_t* encoded_image_sidedata_get() const { return side_data; }
   // Get sidedata size.
   size_t encoded_image_sidedata_size() const { return side_data_length; }
   // Free sidedata.

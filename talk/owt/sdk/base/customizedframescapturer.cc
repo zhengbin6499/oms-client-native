@@ -203,7 +203,14 @@ void CustomizedFramesCapturer::OnStreamProviderFrame(
   encoder_context->meta_data_.encoding_start = meta_data.encoding_start;
   encoder_context->meta_data_.last_fragment = meta_data.last_fragment;
   encoder_context->meta_data_.picture_id = meta_data.picture_id;
-
+  if (meta_data.encoded_image_sidedata_size() > 0) {
+    encoder_context->meta_data_.encoded_image_sidedata_new(
+        meta_data.encoded_image_sidedata_size());
+    memcpy(encoder_context->meta_data_.encoded_image_sidedata_get(),
+           meta_data.encoded_image_sidedata_get(),
+           meta_data.encoded_image_sidedata_size());
+    // sidedata will be freed by encoder proxy.
+  }
   uint8_t* frame_buffer = new uint8_t[buffer.size()];
   std::copy(buffer.begin(), buffer.end(), frame_buffer);
 
