@@ -583,9 +583,10 @@ void CustomizedAudioDeviceModule::CreateOutputAdm() {
 #if defined(WEBRTC_INCLUDE_INTERNAL_AUDIO_DEVICE)
     _outputAdm = webrtc::AudioDeviceModuleImpl::Create(
         0, AudioDeviceModule::kPlatformDefaultAudio);
-#else
-    _outputAdm = new rtc::RefCountedObject<webrtc::FakeAudioDeviceModule>();
 #endif
+    if (_outputAdm == nullptr) {
+      _outputAdm = new rtc::RefCountedObject<webrtc::FakeAudioDeviceModule>();
+    }
   }
 }
 }
