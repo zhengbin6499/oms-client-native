@@ -209,6 +209,17 @@ void P2PPeerConnectionChannel::Send(
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   // Send chat-closed to workaround known browser bugs, together with
   // user agent information once and once only.
+  if (IsAbandoned()) {
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Send not allowed when pc is removed."));
+        on_failure(std::move(e));
+      });
+    }
+    return;
+  }
   if (stop_send_needed_) {
     SendStop(nullptr, nullptr);
     stop_send_needed_ = false;
@@ -259,9 +270,11 @@ void P2PPeerConnectionChannel::Send(
   // reduce message exchange with peer server.
   // Failure callback won't be invoked per spec.
   std::string id_value = std::to_string(message_id);
-  if (on_success)
-    //event_queue_->PostTask([on_success] { on_success(); });
+  if (on_success) {
+    // event_queue_->PostTask([on_success] { on_success(); });
+    const std::lock_guard<std::mutex> lock(message_success_callback_mutex_);
     message_success_callbacks_[id_value] = on_success;
+  }
   if (on_failure) {
 #if 1  // Disabled for cloudgaming
     std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
@@ -351,6 +364,17 @@ void P2PPeerConnectionChannel::SendSignalingMessage(
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   RTC_CHECK(signaling_sender_);
+  if (IsAbandoned()) {
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Send not allowed when remote side is offline."));
+        on_failure(std::move(e));
+      });
+    }
+    return;
+  }
   std::string json_string = rtc::JsonValueToString(data);
   signaling_sender_->SendSignalingMessage(
       json_string, remote_id_, on_success,
@@ -359,20 +383,25 @@ void P2PPeerConnectionChannel::SendSignalingMessage(
           remote_side_offline_ = true;
           ExceptionType type = exception->Type();
           std::string msg = exception->Message();
-          std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
-          for (std::unordered_map<
-                   std::string,
-                   std::function<void(std::unique_ptr<Exception>)>>::iterator
-                   it = failure_callbacks_.begin();
-               it != failure_callbacks_.end(); it++) {
-            std::function<void(std::unique_ptr<Exception>)> failure_callback =
-                it->second;
-            event_queue_->PostTask([failure_callback, type, msg] {
-              std::unique_ptr<Exception> e(new Exception(type, msg));
-              failure_callback(std::move(e));
-            });
+          {
+            std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
+            if (failure_callbacks_.size() > 0) {
+              for (std::unordered_map<
+                     std::string,
+                     std::function<void(std::unique_ptr<Exception>)>>::iterator
+                     it = failure_callbacks_.begin();
+                   it != failure_callbacks_.end(); it++) {
+                std::function<void(std::unique_ptr<Exception>)> failure_callback =
+                  it->second;
+                event_queue_->PostTask([failure_callback, type, msg] {
+                  std::unique_ptr<Exception> e(new Exception(type, msg));
+                  if (failure_callback)
+                    failure_callback(std::move(e));
+                });
+              }
+              failure_callbacks_.clear();
+            }
           }
-          failure_callbacks_.clear();
         }
         if (on_failure)
           on_failure(std::move(exception));
@@ -382,7 +411,7 @@ void P2PPeerConnectionChannel::OnIncomingSignalingMessage(
     const std::string& message) {
   if (ended_)
     return;
-  //RTC_LOG(LS_INFO) << "OnIncomingMessage: " << message;
+  // RTC_LOG(LS_INFO) << "OnIncomingMessage: " << message;
   RTC_DCHECK(!message.empty());
   Json::Reader reader;
   Json::Value json_message;
@@ -599,13 +628,17 @@ void P2PPeerConnectionChannel::OnMessageTracksAdded(
 }
 void P2PPeerConnectionChannel::OnMessageDataReceived(std::string& id) {
   // Here comes the message id for its callback accordingly.
-  if (message_success_callbacks_.find(id) == message_success_callbacks_.end()) {
-    //RTC_LOG(LS_WARNING) << "Received unknown data with message ID: " << id;
-    return;
+  {
+    const std::lock_guard<std::mutex> lock(message_success_callback_mutex_);
+    if (message_success_callbacks_.find(id) ==
+        message_success_callbacks_.end()) {
+      // RTC_LOG(LS_WARNING) << "Received unknown data with message ID: " << id;
+      return;
+    }
+    std::function<void()> callback = message_success_callbacks_[id];
+    event_queue_->PostTask([callback] { callback(); });
+    message_success_callbacks_.erase(id);
   }
-  std::function<void()> callback = message_success_callbacks_[id];
-  event_queue_->PostTask([callback] { callback(); });
-  message_success_callbacks_.erase(id);
   // Remove the failure callback accordingly
   std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
   if (failure_callbacks_.find(id) != failure_callbacks_.end())

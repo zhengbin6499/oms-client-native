@@ -139,7 +139,7 @@ fail:
   return err;
 }
 
-int H264DXVADecoderImpl::PrepareHwDecoder() {
+int H264DXVADecoderImpl::PrepareHwDecoder(webrtc::VideoCodecType codec_type) {
   int ret = 0;
   enum AVHWDeviceType type;
 
@@ -152,7 +152,11 @@ int H264DXVADecoderImpl::PrepareHwDecoder() {
     }
   }
 
-  decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
+  AVCodecID codec_id = codec_type == webrtc::VideoCodecType::kVideoCodecH264
+                           ? AV_CODEC_ID_H264
+                           : AV_CODEC_ID_HEVC;
+
+  decoder = avcodec_find_decoder(codec_id);
   if (!decoder) {
     RTC_LOG(LS_ERROR) << "Decoder not found by avcodec_find_decoder.";
     return -1;
@@ -196,7 +200,11 @@ int32_t H264DXVADecoderImpl::InitDecode(const webrtc::VideoCodec* codec_settings
                                     int32_t number_of_cores) {
   ReportInit();
   if (codec_settings &&
-      codec_settings->codecType != webrtc::kVideoCodecH264) {
+      (codec_settings->codecType != webrtc::kVideoCodecH264 
+#ifndef DISABLE_H265
+      && codec_settings->codecType != webrtc::kVideoCodecH265)
+#endif
+  ) {
     RTC_LOG(LS_ERROR) << "in H264DXVADecoderImpl: codec mismatch.";
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
@@ -208,7 +216,7 @@ int32_t H264DXVADecoderImpl::InitDecode(const webrtc::VideoCodec* codec_settings
     return ret;
   }
 
-  ret = PrepareHwDecoder();
+  ret = PrepareHwDecoder(codec_settings->codecType);
   if (ret < 0) {
     RTC_LOG(LS_ERROR) << "Failed to prepare the hw decoder.";
     return WEBRTC_VIDEO_CODEC_ERROR;

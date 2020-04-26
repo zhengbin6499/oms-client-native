@@ -11,7 +11,7 @@ EncodedVideoEncoderFactory::EncodedVideoEncoderFactory() {
     //supported_codecs_.push_back(cricket::VideoCodec("VP8"));
    // supported_codecs_.push_back(cricket::VideoCodec("VP9"));
 #ifndef DISABLE_H265
-#if 0
+#if 1
     cricket::VideoCodec main10_high(cricket::kH265CodecName);
     main10_high.SetParam(cricket::kH265FmtpProfileSpace, "0");
     main10_high.SetParam(cricket::kH265FmtpProfileId, "1");

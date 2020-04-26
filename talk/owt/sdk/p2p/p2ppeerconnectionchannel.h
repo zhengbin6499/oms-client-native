@@ -232,6 +232,7 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Queue for callbacks and events.
   std::shared_ptr<rtc::TaskQueue> event_queue_;
   std::mutex failure_callbacks_mutex_;
+  std::mutex message_success_callback_mutex_;
   std::unordered_map<std::string, std::function<void(std::unique_ptr<Exception>)>> failure_callbacks_;
   std::shared_ptr<LocalStream> latest_local_stream_;
   std::function<void()> latest_publish_success_callback_;

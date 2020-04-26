@@ -165,7 +165,10 @@ void P2PClient::Stop(
   }
   auto pcc = GetPeerConnectionChannel(target_id);
   pcc->Stop(on_success, on_failure);
-  pc_channels_.erase(target_id);
+  {
+    const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
+    pc_channels_.erase(target_id);
+  }
 }
 void P2PClient::GetConnectionStats(
     const std::string& target_id,
@@ -284,12 +287,15 @@ void P2PClient::Unpublish(
   pcc->Unpublish(stream, on_success, on_failure);
 }
 bool P2PClient::IsPeerConnectionChannelCreated(const std::string& target_id) {
+  // Jianlin: maybe needs to lock here.
+  //const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
   if (pc_channels_.find(target_id) == pc_channels_.end())
     return false;
   return true;
 }
 std::shared_ptr<P2PPeerConnectionChannel> P2PClient::GetPeerConnectionChannel(
     const std::string& target_id) {
+  const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
   auto pcc_it = pc_channels_.find(target_id);
   // if the channel has already been abandoned
   if (pcc_it != pc_channels_.end() && pcc_it->second->IsAbandoned()) {
@@ -352,6 +358,7 @@ void P2PClient::OnStarted(const std::string& remote_id) {
                          &P2PClientObserver::OnChatStarted, remote_id);
 }
 void P2PClient::OnStopped(const std::string& remote_id) {
+  const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
   removed_pc_channels_.push_back(pc_channels_[remote_id]);
   pc_channels_.erase(remote_id);
   EventTrigger::OnEvent1(observers_, event_queue_,
