@@ -363,7 +363,8 @@ void P2PPeerConnectionChannel::SendSignalingMessage(
     const Json::Value& data,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
-  RTC_CHECK(signaling_sender_);
+  if (!signaling_sender_)
+    return;
   if (IsAbandoned()) {
     if (on_failure) {
       event_queue_->PostTask([on_failure] {
@@ -387,12 +388,12 @@ void P2PPeerConnectionChannel::SendSignalingMessage(
             std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
             if (failure_callbacks_.size() > 0) {
               for (std::unordered_map<
-                     std::string,
-                     std::function<void(std::unique_ptr<Exception>)>>::iterator
-                     it = failure_callbacks_.begin();
+                       std::string, std::function<void(
+                                        std::unique_ptr<Exception>)>>::iterator
+                       it = failure_callbacks_.begin();
                    it != failure_callbacks_.end(); it++) {
-                std::function<void(std::unique_ptr<Exception>)> failure_callback =
-                  it->second;
+                std::function<void(std::unique_ptr<Exception>)>
+                    failure_callback = it->second;
                 event_queue_->PostTask([failure_callback, type, msg] {
                   std::unique_ptr<Exception> e(new Exception(type, msg));
                   if (failure_callback)
@@ -478,6 +479,9 @@ void P2PPeerConnectionChannel::OnMessageUserAgent(Json::Value& ua) {
 }
 void P2PPeerConnectionChannel::OnMessageStop() {
   RTC_LOG(LS_INFO) << "Remote user stopped.";
+  TriggerOnStopped();
+  ClosePeerConnection();
+  ChangeSessionState(kSessionStateReady);
   {
     std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
     for (std::unordered_map<
@@ -496,9 +500,6 @@ void P2PPeerConnectionChannel::OnMessageStop() {
     }
     failure_callbacks_.clear();
   }
-  ClosePeerConnection();
-  ChangeSessionState(kSessionStateReady);
-  TriggerOnStopped();
 }
 void P2PPeerConnectionChannel::OnMessageDeny() {
   RTC_LOG(LS_INFO) << "Remote user denied connection.";
@@ -1024,17 +1025,20 @@ void P2PPeerConnectionChannel::Stop(
     case kSessionStateConnecting:
     case kSessionStateConnected:
       ClosePeerConnection();
-      SendStop(nullptr, nullptr);
+      if (stop_send_needed_)
+        SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       break;
     case kSessionStateMatched:
-      SendStop(nullptr, nullptr);
+      if (stop_send_needed_)
+        SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       break;
     case kSessionStateOffered:
-      SendStop(nullptr, nullptr);
+      if (stop_send_needed_)
+        SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       TriggerOnStopped();
@@ -1145,6 +1149,9 @@ P2PPeerConnectionChannel::GetLatestPublishFailureCallback() {
 }
 bool P2PPeerConnectionChannel::IsAbandoned() {
   return remote_side_offline_;
+}
+void P2PPeerConnectionChannel::DisableSendingStop() {
+  stop_send_needed_ = false;
 }
 void P2PPeerConnectionChannel::DrainPendingStreams() {
   RTC_LOG(LS_INFO) << "Draining pending stream";
