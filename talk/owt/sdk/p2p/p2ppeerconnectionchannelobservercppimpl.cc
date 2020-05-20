@@ -21,6 +21,11 @@ void P2PPeerConnectionChannelObserverCppImpl::OnData(
     const std::string& message) {
   peer_client_.OnData(remote_id, message);
 }
+void P2PPeerConnectionChannelObserverCppImpl::OnBinary(
+    const std::string& remote_id,
+    const std::vector<uint8_t>& binary) {
+  peer_client_.OnBinary(remote_id, binary);
+}
 void P2PPeerConnectionChannelObserverCppImpl::OnStreamAdded(
     std::shared_ptr<RemoteStream> stream) {
   peer_client_.OnStreamAdded(stream);

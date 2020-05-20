@@ -24,9 +24,12 @@ class P2PPeerConnectionChannelObserverCppImpl
   virtual void OnStopped(const std::string& remote_id);
   // Triggered when remote user denied the invitation.
   virtual void OnDenied(const std::string& remote_id);
-  // Triggered when remote user send data via data channel.
+  // Triggered when remote user send text message via data channel.
   // Currently, data is string type.
   virtual void OnData(const std::string& remote_id, const std::string& message);
+  // Triggered when remote user send binary via data channel
+  virtual void OnBinary(const std::string& remote_id,
+                        const std::vector<uint8_t>& binary);
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(std::shared_ptr<RemoteStream> stream);
  private:

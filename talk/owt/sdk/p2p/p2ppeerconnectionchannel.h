@@ -36,6 +36,8 @@ class P2PPeerConnectionChannelObserver {
   // Currently, data is string.
   virtual void OnData(const std::string& remote_id,
                       const std::string& message) = 0;
+  virtual void OnBinary(const std::string& remote_id,
+                        const std::vector<uint8_t>& binary) = 0;
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(
       std::shared_ptr<RemoteStream> stream) = 0;
@@ -84,6 +86,10 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Send message to remote user.
   void Send(bool is_control,
             const std::string& message,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
+  void Send(bool is_control,
+            const std::vector<uint8_t>& message,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Stop current WebRTC session.
@@ -160,6 +166,7 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
       uintptr_t pointer,
       std::function<void(std::unique_ptr<Exception>)> on_failure);
   webrtc::DataBuffer CreateDataBuffer(const std::string& data);
+  webrtc::DataBuffer CreateDataBuffer(const std::vector<uint8_t>& binary);
   void CreateDataChannel(const std::string& label);
   // Send all messages in pending message list.
   void DrainPendingMessages();
@@ -211,13 +218,19 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
                          // "disconnect"
   int reconnect_timeout_;  // Unit: second
   long message_seq_num_; // Message ID to be sent through data channel
-  std::vector<std::shared_ptr<std::string>> pending_messages_;  // Messages need
-                                                                // to be sent
-                                                                // once data
-                                                                // channel is
-                                                                // ready.
+  std::vector < std::tuple<std::shared_ptr<std::string>,
+                           std::function<void()>,
+                           std::function<void(std::unique_ptr<Exception>)>>>
+                    pending_messages_;
+  std::vector<std::tuple<rtc::CopyOnWriteBuffer,
+              std::function<void()>,
+              std::function<void(std::unique_ptr<Exception>)>>>
+                    pending_binaries_;
   std::mutex pending_messages_mutex_;
-  std::vector<std::shared_ptr<std::string>> pending_control_messages_;
+  std::vector<std::tuple<std::shared_ptr<std::string>,
+                         std::function<void()>,
+                         std::function<void(std::unique_ptr<Exception>)>>>
+                    pending_control_messages_;
   std::mutex pending_control_messages_mutex_;
   std::unordered_map<std::string, std::function<void()>> message_success_callbacks_;
   // Indicates whether remote client supports WebRTC Plan B

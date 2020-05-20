@@ -127,6 +127,14 @@ void P2PClient::Send(const std::string& target_id,
 
 void P2PClient::Send(
     const std::string& target_id,
+    const std::vector<uint8_t>& message,
+    std::function<void()> on_success,
+    std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  Send(target_id, message, true, on_success, on_failure);
+}
+
+void P2PClient::Send(
+    const std::string& target_id,
     const std::string& message,
     bool is_reliable,
     std::function<void()> on_success,
@@ -148,6 +156,32 @@ void P2PClient::Send(
   auto pcc = GetPeerConnectionChannel(target_id);
   pcc->Send(is_reliable, message, on_success, on_failure);
 }
+
+void P2PClient::Send(
+    const std::string& target_id,
+    const std::vector<uint8_t>& data,
+    bool is_reliable,
+    std::function<void()> on_success,
+    std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  // Firstly check whether target_id is in the allowed_remote_ids_ list.
+  if (std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
+                target_id) == allowed_remote_ids_.end()) {
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientRemoteNotAllowed,
+                          "Sending a message cannot be done since the remote "
+                          "user is not allowed."));
+        on_failure(std::move(e));
+      });
+    }
+    return;
+  }
+  // Secondly use pcc to send the message.
+  auto pcc = GetPeerConnectionChannel(target_id);
+  pcc->Send(is_reliable, data, on_success, on_failure);
+}
+
 void P2PClient::Stop(
     const std::string& target_id,
     std::function<void()> on_success,
@@ -366,6 +400,12 @@ void P2PClient::OnData(const std::string& remote_id,
   EventTrigger::OnEvent2(observers_, event_queue_,
                          &P2PClientObserver::OnDataReceived, remote_id,
                          message);
+}
+void P2PClient::OnBinary(const std::string& remote_id,
+                       const std::vector<uint8_t>& binary) {
+  EventTrigger::OnEvent2(observers_, event_queue_,
+                         &P2PClientObserver::OnBinaryReceived, remote_id,
+                         binary);
 }
 void P2PClient::OnStreamAdded(std::shared_ptr<RemoteStream> stream) {
   EventTrigger::OnEvent1(

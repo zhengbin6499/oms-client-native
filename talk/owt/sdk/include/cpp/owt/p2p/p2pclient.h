@@ -71,6 +71,14 @@ class P2PClientObserver {
   virtual void OnDataReceived(const std::string& remote_user_id,
                               const std::string message){};
   /**
+ @brief This function will be invoked when received binary from a remote user.
+ (This event haven't been implemented yet)
+ @param remote_user_id Remote user's ID
+ @param data Data binary received
+ */
+  virtual void OnBinaryReceived(const std::string& remote_user_id,
+                              const std::vector<uint8_t>& data){};
+  /**
    @brief This function will be invoked when a remote stream is available.
    @param stream The remote stream added.
    */
@@ -211,6 +219,23 @@ class P2PClient final
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
   /**
+ @brief Send binary data to remote client.
+ @param target_id Remote user's ID.
+ @param data The binary data to be sent.
+ @param on_success Success callback will be invoked if send
+                   deny event successfully.
+ @param on_failure Failure callback will be invoked if one of
+ the following cases happened.
+ 1. P2PClient is disconnected from the server.
+ 2. Target ID is null or target user is offline.
+ 3. There is no WebRTC session with target user.
+ 4. The sending buffer is full.
+ */
+  void Send(const std::string& target_id,
+            const std::vector<uint8_t>& data,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
+  /**
    @brief Get the connection statistowt with target client.
    @param target_id Remote user's ID.
    @param on_success Success callback will be invoked if get statistoms
@@ -248,10 +273,17 @@ class P2PClient final
   // Currently, data is string.
   virtual void OnData(const std::string& remote_id,
                       const std::string& message);
+  virtual void OnBinary(const std::string& remote_id,
+                        const std::vector<uint8_t>& binary);
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(
       std::shared_ptr<owt::base::RemoteStream> stream);
  private:
+  void Send(const std::string& target_id,
+            const std::vector<uint8_t>& message,
+            bool is_reliable,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
   void Unpublish(const std::string& target_id,
                  std::shared_ptr<LocalStream> stream,
                  std::function<void()> on_success,
