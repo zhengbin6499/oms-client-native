@@ -99,8 +99,8 @@ void PeerConnectionDependencyFactory::
   }
   // Set H.264 temporal layers. Ideally it should be set via RtpSenderParam
   int h264_temporal_layers = GlobalConfiguration::GetH264TemporalLayers();
-  field_trial_ +=
-      "OWT-H264TemporalLayers/" + std::to_string(h264_temporal_layers) + std::string("/");
+  field_trial_ += "OWT-H264TemporalLayers/" +
+                  std::to_string(h264_temporal_layers) + std::string("/");
   webrtc::field_trial::InitFieldTrialsFromString(field_trial_.c_str());
   if (!rtc::InitializeSSL()) {
     RTC_LOG(LS_ERROR) << "Failed to initialize SSL.";
@@ -119,8 +119,7 @@ void PeerConnectionDependencyFactory::
   RTC_CHECK(worker_thread->Start() && signaling_thread->Start() &&
             network_thread->Start())
       << "Failed to start threads";
-  network_manager_ =
-      std::make_shared<rtc::BasicNetworkManager>();
+  network_manager_ = std::make_shared<rtc::BasicNetworkManager>();
   packet_socket_factory_ =
       std::make_shared<rtc::BasicPacketSocketFactory>(network_thread.get());
 #if defined(WEBRTC_IOS)
@@ -184,7 +183,7 @@ void PeerConnectionDependencyFactory::
       network_thread.get(), worker_thread.get(), signaling_thread.get(), adm,
       webrtc::CreateBuiltinAudioEncoderFactory(),
       webrtc::CreateBuiltinAudioDecoderFactory(),
-      std::move(encoder_factory),   // Encoder factory
+      std::move(encoder_factory),                     // Encoder factory
       std::move(decoder_factory), nullptr, nullptr);  // Decoder factory
 #else
 #error "Unsupported platform."
@@ -198,14 +197,16 @@ PeerConnectionDependencyFactory::CreatePeerConnectionOnCurrentThread(
     const webrtc::PeerConnectionInterface::RTCConfiguration& config,
     webrtc::PeerConnectionObserver* observer) {
   std::unique_ptr<cricket::PortAllocator> port_allocator;
-  port_allocator.reset(new cricket::BasicPortAllocator(network_manager_.get(), packet_socket_factory_.get()));
+  port_allocator.reset(new cricket::BasicPortAllocator(
+      network_manager_.get(), packet_socket_factory_.get()));
   int min_port = 0;
   int max_port = 0;
   GlobalConfiguration::GetIcePortAllocationRanges(min_port, max_port);
   if (min_port > 0 && max_port > 0 && max_port >= min_port) {
     port_allocator->SetPortRange(min_port, max_port);
   }
-  return (pc_factory_->CreatePeerConnection(config, std::move(port_allocator), nullptr, observer))
+  return (pc_factory_->CreatePeerConnection(config, std::move(port_allocator),
+                                            nullptr, observer))
       .get();
 }
 void PeerConnectionDependencyFactory::CreatePeerConnectionFactory() {

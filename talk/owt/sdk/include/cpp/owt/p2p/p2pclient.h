@@ -3,28 +3,30 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_P2P_P2PCLIENT_H_
 #define OWT_P2P_P2PCLIENT_H_
+
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 #include <vector>
-#include <set>
+#include "owt/base/clientconfiguration.h"
 #include "owt/base/commontypes.h"
 #include "owt/base/connectionstats.h"
+#include "owt/base/globalconfiguration.h"
 #include "owt/base/stream.h"
 #include "owt/p2p/p2ppublication.h"
 #include "owt/p2p/p2psignalingchannelinterface.h"
 #include "owt/p2p/p2psignalingsenderinterface.h"
-#include "owt/base/clientconfiguration.h"
-#include "owt/base/globalconfiguration.h"
 namespace rtc {
-  class TaskQueue;
+class TaskQueue;
+class OperationsChain;
 }
 namespace owt {
 namespace base {
-  struct PeerConnectionChannelConfiguration;
+struct PeerConnectionChannelConfiguration;
 }
-namespace p2p{
+namespace p2p {
 /**
  @brief Configuration for P2PClient
  This configuration is used while creating P2PClient. Changing this
@@ -45,31 +47,31 @@ class P2PClientObserver {
    @param message Message received
    */
   virtual void OnMessageReceived(const std::string& remote_user_id,
-                                 const std::string message){}
+                                 const std::string message) {}
   /**
    @brief This function will be invoked when a remote stream is available.
    @param stream The remote stream added.
    */
-  virtual void OnStreamAdded(
-      std::shared_ptr<owt::base::RemoteStream> stream){}
+  virtual void OnStreamAdded(std::shared_ptr<owt::base::RemoteStream> stream) {}
   /**
    @brief This function will be invoked when client is disconnected from
    signaling server.
    */
-  virtual void OnServerDisconnected(){}
+  virtual void OnServerDisconnected() {}
 };
 /// An async client for P2P WebRTC sessions
-class P2PClient final
-    : protected P2PSignalingSenderInterface,
-      protected P2PSignalingChannelObserver,
-      public std::enable_shared_from_this<P2PClient> {
+class P2PClient final : protected P2PSignalingSenderInterface,
+                        protected P2PSignalingChannelObserver,
+                        public std::enable_shared_from_this<P2PClient> {
   friend class P2PPublication;
   friend class P2PPeerConnectionChannelObserverCppImpl;
+
  public:
   /**
    @brief Init a P2PClient instance with speficied signaling channel.
    @param configuration Configuration for creating the P2PClient.
-   @param signaling_channel Signaling channel used for exchange signaling messages.
+   @param signaling_channel Signaling channel used for exchange signaling
+   messages.
    */
   P2PClient(P2PClientConfiguration& configuration,
             std::shared_ptr<P2PSignalingChannelInterface> signaling_channel);
@@ -123,9 +125,10 @@ class P2PClient final
       1. P2PClient is disconnected from the server.
       2. Target ID is null or target user is offline.
    */
-  void RemoveAllowedRemoteId(const std::string& target_id,
-                             std::function<void()> on_success,
-                             std::function<void(std::unique_ptr<Exception>)> on_failure);
+  void RemoveAllowedRemoteId(
+      const std::string& target_id,
+      std::function<void()> on_success,
+      std::function<void(std::unique_ptr<Exception>)> on_failure);
   /**
    @brief Stop a WebRTC session.
    @param target_id Remote user's ID.
@@ -161,7 +164,8 @@ class P2PClient final
    @brief Send a message to remote client
    @param target_id Remote user's ID.
    @param message The message to be sent.
-   @param on_success Success callback will be invoked if message sent successfully.
+   @param on_success Success callback will be invoked if message sent
+   successfully.
    @param on_failure Failure callback will be invoked if one of the following
    cases happened.
    1. P2PClient is disconnected from the server.
@@ -173,18 +177,18 @@ class P2PClient final
             bool is_reliable,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
-   /**
-    @brief Send a message to remote client on text message channel.
-    @param target_id Remote user's ID.
-    @param message The message to be sent.
-    @param on_success Success callback will be invoked if send
-                      deny event successfully.
-    @param on_failure Failure callback will be invoked if one of
-    the following cases happened.
-    1. P2PClient is disconnected from the server.
-    2. Target ID is null or target user is offline.
-    3. There is no WebRTC session with target user.
-    */
+  /**
+   @brief Send a message to remote client on text message channel.
+   @param target_id Remote user's ID.
+   @param message The message to be sent.
+   @param on_success Success callback will be invoked if send
+                     deny event successfully.
+   @param on_failure Failure callback will be invoked if one of
+   the following cases happened.
+   1. P2PClient is disconnected from the server.
+   2. Target ID is null or target user is offline.
+   3. There is no WebRTC session with target user.
+   */
   void Send(const std::string& target_id,
             const std::string& message,
             std::function<void()> on_success,
@@ -202,19 +206,22 @@ class P2PClient final
    */
   void GetConnectionStats(
       const std::string& target_id,
-      std::function<void(std::shared_ptr<owt::base::ConnectionStats>)> on_success,
+      std::function<void(std::shared_ptr<owt::base::ConnectionStats>)>
+          on_success,
       std::function<void(std::unique_ptr<Exception>)> on_failure);
   /** @cond */
   void SetLocalId(const std::string& local_id);
   /** @endcond */
  protected:
   // Implement P2PSignalingSenderInterface
-  virtual void SendSignalingMessage(const std::string& message,
-                                    const std::string& remote_id,
-                                    std::function<void()> on_success,
-                                    std::function<void(std::unique_ptr<Exception>)> on_failure);
+  virtual void SendSignalingMessage(
+      const std::string& message,
+      const std::string& remote_id,
+      std::function<void()> on_success,
+      std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Implement P2PSignalingChannelObserver
-  virtual void OnSignalingMessage(const std::string& message, const std::string& sender);
+  virtual void OnSignalingMessage(const std::string& message,
+                                  const std::string& sender);
   virtual void OnServerDisconnected();
   // Handle events from P2PPeerConnectionChannel
   // Triggered when the WebRTC session is ended.
@@ -224,20 +231,22 @@ class P2PClient final
   virtual void OnMessageReceived(const std::string& remote_id,
                                  const std::string& message);
   // Triggered when a new stream is added.
-  virtual void OnStreamAdded(
-      std::shared_ptr<owt::base::RemoteStream> stream);
+  virtual void OnStreamAdded(std::shared_ptr<owt::base::RemoteStream> stream);
+
  private:
   void Unpublish(const std::string& target_id,
                  std::shared_ptr<LocalStream> stream,
                  std::function<void()> on_success,
                  std::function<void(std::unique_ptr<Exception>)> on_failure);
   std::shared_ptr<P2PPeerConnectionChannel> GetPeerConnectionChannel(
-      const std::string& target_id, bool replace = false);
+      const std::string& target_id);
   bool IsPeerConnectionChannelCreated(const std::string& target_id);
-  owt::base::PeerConnectionChannelConfiguration GetPeerConnectionChannelConfiguration();
+  owt::base::PeerConnectionChannelConfiguration
+  GetPeerConnectionChannelConfiguration();
   // Queue for callbacks and events. Shared among P2PClient and all of it's
   // P2PPeerConnectionChannel.
   std::shared_ptr<rtc::TaskQueue> event_queue_;
+  std::shared_ptr<rtc::TaskQueue> signaling_queue_;
   std::shared_ptr<P2PSignalingChannelInterface> signaling_channel_;
   std::unordered_map<std::string, std::shared_ptr<P2PPeerConnectionChannel>>
       pc_channels_;
@@ -249,7 +258,8 @@ class P2PClient final
   P2PClientConfiguration configuration_;
   mutable std::mutex remote_ids_mutex_;
   std::vector<std::string> allowed_remote_ids_;
+  mutable std::mutex api_lock_;
 };
-}
-}
+}  // namespace p2p
+}  // namespace owt
 #endif  // OWT_P2P_P2PCLIENT_H_

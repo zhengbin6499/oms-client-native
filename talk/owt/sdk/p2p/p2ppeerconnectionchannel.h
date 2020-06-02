@@ -3,22 +3,22 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef WOOGEEN_P2P_P2PPEERCONNECTIONCHANNEL_H_
 #define WOOGEEN_P2P_P2PPEERCONNECTIONCHANNEL_H_
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
-#include <chrono>
-#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
 #include "talk/owt/sdk/base/peerconnectionchannel.h"
-#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
+#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
 #include "talk/owt/sdk/include/cpp/owt/base/exception.h"
-#include "talk/owt/sdk/include/cpp/owt/p2p/p2psignalingsenderinterface.h"
+#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
 #include "talk/owt/sdk/include/cpp/owt/p2p/p2psignalingreceiverinterface.h"
-#include "webrtc/sdk/media_constraints.h"
-#include "webrtc/rtc_base/strings/json.h"
+#include "talk/owt/sdk/include/cpp/owt/p2p/p2psignalingsenderinterface.h"
 #include "webrtc/rtc_base/message_handler.h"
+#include "webrtc/rtc_base/strings/json.h"
 #include "webrtc/rtc_base/task_queue.h"
 #include "webrtc/rtc_base/thread_annotations.h"
+#include "webrtc/sdk/media_constraints.h"
 namespace owt {
 namespace p2p {
 using namespace owt::base;
@@ -31,15 +31,15 @@ class P2PPeerConnectionChannelObserver {
   virtual void OnMessageReceived(const std::string& remote_id,
                                  const std::string& message) = 0;
   // Triggered when a new stream is added.
-  virtual void OnStreamAdded(
-      std::shared_ptr<RemoteStream> stream) = 0;
+  virtual void OnStreamAdded(std::shared_ptr<RemoteStream> stream) = 0;
   // Triggered when the WebRTC session is ended.
   virtual void OnStopped(const std::string& remote_id) = 0;
 };
 // An instance of P2PPeerConnectionChannel manages a session for a specified
 // remote client.
 class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
-                                 public PeerConnectionChannel {
+                                 public PeerConnectionChannel,
+                                 public std::enable_shared_from_this<P2PPeerConnectionChannel> {
  public:
   explicit P2PPeerConnectionChannel(
       PeerConnectionChannelConfiguration configuration,
@@ -92,9 +92,11 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   bool HaveLocalOffer();
   std::shared_ptr<LocalStream> GetLatestLocalStream();
   std::function<void()> GetLatestPublishSuccessCallback();
-  std::function<void(std::unique_ptr<Exception>)> GetLatestPublishFailureCallback();
+  std::function<void(std::unique_ptr<Exception>)>
+  GetLatestPublishFailureCallback();
   bool IsAbandoned();
   void DisableSendingStop();
+  void SetAbandoned() { remote_side_offline_ = true;}
  protected:
   void CreateOffer() override;
   void CreateAnswer() override;
@@ -110,29 +112,36 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // PeerConnectionObserver
   virtual void OnSignalingChange(
       PeerConnectionInterface::SignalingState new_state) override;
-  virtual void OnAddStream(rtc::scoped_refptr<MediaStreamInterface> stream) override;
-  virtual void OnRemoveStream(rtc::scoped_refptr<MediaStreamInterface> stream) override;
+  virtual void OnAddStream(
+      rtc::scoped_refptr<MediaStreamInterface> stream) override;
+  virtual void OnRemoveStream(
+      rtc::scoped_refptr<MediaStreamInterface> stream) override;
   virtual void OnDataChannel(
       rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override;
   virtual void OnIceConnectionChange(
       PeerConnectionInterface::IceConnectionState new_state) override;
   virtual void OnIceGatheringChange(
       PeerConnectionInterface::IceGatheringState new_state) override;
-  virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
+  virtual void OnIceCandidate(
+      const webrtc::IceCandidateInterface* candidate) override;
   // DataChannelObserver
   virtual void OnDataChannelStateChange() override;
   virtual void OnDataChannelMessage(const webrtc::DataBuffer& buffer) override;
   // CreateSessionDescriptionObserver
   virtual void OnCreateSessionDescriptionSuccess(
       webrtc::SessionDescriptionInterface* desc) override;
-  virtual void OnCreateSessionDescriptionFailure(const std::string& error) override;
+  virtual void OnCreateSessionDescriptionFailure(
+      const std::string& error) override;
   // SetSessionDescriptionObserver
   virtual void OnSetLocalSessionDescriptionSuccess() override;
-  virtual void OnSetLocalSessionDescriptionFailure(const std::string& error) override;
+  virtual void OnSetLocalSessionDescriptionFailure(
+      const std::string& error) override;
   virtual void OnSetRemoteSessionDescriptionSuccess() override;
-  virtual void OnSetRemoteSessionDescriptionFailure(const std::string& error) override;
+  virtual void OnSetRemoteSessionDescriptionFailure(
+      const std::string& error) override;
   enum SessionState : int;
   enum NegotiationState : int;
+
  private:
   void ChangeSessionState(SessionState state);
   void SendSignalingMessage(
@@ -163,6 +172,8 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Set remote capability flags based on UA.
   void HandleRemoteCapability(Json::Value& ua);
   void SendUaInfo();
+  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel_;
+  rtc::scoped_refptr<webrtc::DataChannelInterface> control_data_channel_;
   P2PSignalingSenderInterface* signaling_sender_;
   std::string local_id_;
   std::string remote_id_;
@@ -179,7 +190,8 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   std::unordered_map<std::string, std::string> local_stream_tracks_info_;
   std::mutex local_stream_tracks_info_mutex_;
   // Key is remote media stream's label, value is RemoteStream instance.
-  std::unordered_map<std::string, std::shared_ptr<RemoteStream>> remote_streams_;
+  std::unordered_map<std::string, std::shared_ptr<RemoteStream>>
+      remote_streams_;
   // Streams need to be published.
   std::vector<std::shared_ptr<LocalStream>> pending_publish_streams_;
   // Streams need to be unpublished.
@@ -194,14 +206,15 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Shared by |published_streams_| and |publishing_streams_|.
   std::mutex published_streams_mutex_;
   std::vector<P2PPeerConnectionChannelObserver*> observers_;
-  std::unordered_map<std::string, std::function<void()>> publish_success_callbacks_;
+  std::unordered_map<std::string, std::function<void()>>
+      publish_success_callbacks_;
   // Store remote SDP if it cannot be set currently.
-  SetSessionDescriptionMessage* set_remote_sdp_task_;
+  std::unique_ptr<webrtc::SessionDescriptionInterface> pending_remote_sdp_;
   std::chrono::time_point<std::chrono::system_clock>
-      last_disconnect_;  // Last time |peer_connection_| changes its state to
-                         // "disconnect".
+      last_disconnect_;    // Last time |peer_connection_| changes its state to
+                           // "disconnect".
   int reconnect_timeout_;  // Unit: second.
-  int message_seq_num_; // Message ID to be sent through data channel.
+  int message_seq_num_;    // Message ID to be sent through data channel.
   // Messages need to be sent once data channel is ready.
   std::vector<std::tuple<std::shared_ptr<std::string>,
                          std::function<void()>,
@@ -223,7 +236,8 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   bool remote_side_supports_plan_b_;
   bool remote_side_supports_remove_stream_;
   bool remote_side_supports_unified_plan_;
-  bool is_creating_offer_;  // It will be true during creating and setting offer.
+  bool
+      is_creating_offer_;  // It will be true during creating and setting offer.
   bool remote_side_supports_continual_ice_gathering_;
   // Removing ack for data channel messages. If
   // |remote_side_ignores_datachannel_ack_| is true, don't send acks.
@@ -233,15 +247,21 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Queue for callbacks and events.
   std::shared_ptr<rtc::TaskQueue> event_queue_;
   std::mutex failure_callbacks_mutex_;
-  std::unordered_map<std::string, std::function<void(std::unique_ptr<Exception>)>> failure_callbacks_;
+  std::unordered_map<std::string,
+                     std::function<void(std::unique_ptr<Exception>)>>
+      failure_callbacks_;
   std::shared_ptr<LocalStream> latest_local_stream_;
   std::function<void()> latest_publish_success_callback_;
-  std::function<void(std::unique_ptr<Exception>)> latest_publish_failure_callback_;
+  std::function<void(std::unique_ptr<Exception>)>
+      latest_publish_failure_callback_;
   bool ua_sent_;
-  bool stop_send_needed_;
+  std::atomic<bool> stop_send_needed_;
   bool remote_side_offline_;
-  bool ended_;
+  bool block_data_send_ = false;
+  std::atomic<bool> ended_ = false;
+  bool local_stop_triggered_ = false;
+  mutable std::mutex api_lock_;
 };
-}
-}
+}  // namespace p2p
+}  // namespace owt
 #endif  // WOOGEEN_P2P_P2PPEERCONNECTIONCHANNEL_H_

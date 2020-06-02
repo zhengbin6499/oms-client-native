@@ -51,7 +51,7 @@ if (!is_ios) {
   static_library("owt") {
     deps = [
       ":owt_sdk_base",
-      ":owt_sdk_conf",
+      #":owt_sdk_conf",
       ":owt_sdk_p2p",
       "//third_party/webrtc",
       "//third_party/webrtc:webrtc",

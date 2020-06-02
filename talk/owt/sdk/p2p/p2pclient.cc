@@ -4,40 +4,49 @@
 
 // Seems we cannot reorder the header inclusion. Otherwise
 // SendMessage will fail compilation.
+
+#include "talk/owt/sdk/include/cpp/owt/p2p/p2pclient.h"
 #include <algorithm>
 #include <future>
+#include "talk/owt/sdk/base/eventtrigger.h"
+#include "talk/owt/sdk/base/stringutils.h"
+#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannelobservercppimpl.h"
+#include "talk/owt/sdk/p2p/p2psignalingsenderimpl.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/checks.h"
 #include "webrtc/rtc_base/critical_section.h"
 #include "webrtc/rtc_base/logging.h"
+#include "webrtc/rtc_base/ref_counted_object.h"
 #include "webrtc/rtc_base/strings/json.h"
 #include "webrtc/rtc_base/task_queue.h"
 #include "webrtc/rtc_base/third_party/base64/base64.h"
-#include "talk/owt/sdk/base/eventtrigger.h"
-#include "talk/owt/sdk/base/stringutils.h"
-#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
-#include "talk/owt/sdk/include/cpp/owt/p2p/p2pclient.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannelobservercppimpl.h"
-#include "talk/owt/sdk/p2p/p2psignalingsenderimpl.h"
 
 using namespace rtc;
 namespace owt {
 namespace p2p {
+
 enum IcsP2PError : int {
   kWebrtcIceGatheringPolicyUnsupported = 2601,
 };
+
 P2PClient::P2PClient(
     P2PClientConfiguration& configuration,
     std::shared_ptr<P2PSignalingChannelInterface> signaling_channel)
-    : signaling_channel_(signaling_channel), configuration_(configuration) {
+    : signaling_channel_(signaling_channel),
+      configuration_(configuration) {
   RTC_CHECK(signaling_channel_);
   signaling_channel_->AddObserver(*this);
   auto task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
   event_queue_ =
       std::make_unique<rtc::TaskQueue>(task_queue_factory->CreateTaskQueue(
           "P2PClientEventQueue", webrtc::TaskQueueFactory::Priority::NORMAL));
+  signaling_queue_ =
+      std::make_unique<rtc::TaskQueue>(task_queue_factory->CreateTaskQueue(
+          "P2PClientSignalingQueue", webrtc::TaskQueueFactory::Priority::NORMAL));
 }
+
 void P2PClient::Connect(
     const std::string& host,
     const std::string& token,
@@ -56,12 +65,14 @@ void P2PClient::Connect(
       },
       on_failure);
 }
+
 void P2PClient::Disconnect(
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   RTC_CHECK(signaling_channel_);
   signaling_channel_->Disconnect(on_success, on_failure);
 }
+
 void P2PClient::AddAllowedRemoteId(const std::string& target_id) {
   if (std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
                 target_id) != allowed_remote_ids_.end()) {
@@ -71,6 +82,7 @@ void P2PClient::AddAllowedRemoteId(const std::string& target_id) {
   const std::lock_guard<std::mutex> lock(remote_ids_mutex_);
   allowed_remote_ids_.push_back(target_id);
 }
+
 void P2PClient::RemoveAllowedRemoteId(
     const std::string& target_id,
     std::function<void()> on_success,
@@ -95,13 +107,15 @@ void P2PClient::RemoveAllowedRemoteId(
   }
   Stop(target_id, on_success, on_failure);
 }
+
 void P2PClient::Publish(
     const std::string& target_id,
     std::shared_ptr<LocalStream> stream,
     std::function<void(std::shared_ptr<P2PPublication>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   // Firstly check whether target_id is in the allowed_remote_ids_ list.
-  if (std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
+  if (!stream ||
+      std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
                 target_id) == allowed_remote_ids_.end()) {
     if (on_failure) {
       event_queue_->PostTask([on_failure] {
@@ -136,6 +150,7 @@ void P2PClient::Send(
     const std::string& message,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  RTC_LOG(LS_ERROR) << "P2PClient::Send() called.";
   Send(target_id, message, true, on_success, on_failure);
 }
 
@@ -145,6 +160,7 @@ void P2PClient::Send(
     bool is_reliable,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  const std::lock_guard<std::mutex> lock(api_lock_);
   // Firstly check whether target_id is in the allowed_remote_ids_ list.
   if (std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
                 target_id) == allowed_remote_ids_.end()) {
@@ -159,7 +175,8 @@ void P2PClient::Send(
     }
     return;
   }
-  // Secondly use pcc to send the message.
+
+  // Send does not allow replacing 
   auto pcc = GetPeerConnectionChannel(target_id);
   pcc->Send(message, is_reliable, on_success, on_failure);
 }
@@ -167,6 +184,8 @@ void P2PClient::Stop(
     const std::string& target_id,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
+
+  const std::lock_guard<std::mutex> api_lock(api_lock_);
   if (!IsPeerConnectionChannelCreated(target_id)) {
     if (on_failure) {
       event_queue_->PostTask([on_failure] {
@@ -178,17 +197,18 @@ void P2PClient::Stop(
     }
     return;
   }
+
   auto pcc = GetPeerConnectionChannel(target_id);
   pcc->Stop(on_success, on_failure);
-  {
-    const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
-    pc_channels_.erase(target_id);
-  }
+  const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
+  pc_channels_.erase(target_id);
 }
+
 void P2PClient::GetConnectionStats(
     const std::string& target_id,
     std::function<void(std::shared_ptr<owt::base::ConnectionStats>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  const std::lock_guard<std::mutex> lock(api_lock_);
   if (!IsPeerConnectionChannelCreated(target_id)) {
     if (on_failure) {
       event_queue_->PostTask([on_failure] {
@@ -200,73 +220,96 @@ void P2PClient::GetConnectionStats(
     }
     return;
   }
+
   auto pcc = GetPeerConnectionChannel(target_id);
   pcc->GetConnectionStats(on_success, on_failure);
 }
+
 void P2PClient::SetLocalId(const std::string& local_id) {
   local_id_ = local_id;
 }
+
 void P2PClient::OnSignalingMessage(const std::string& message,
                                    const std::string& remote_id) {
-  // First to check whether remote_id is in the allowed_remote_ids_ list.
-  if (std::find(allowed_remote_ids_.begin(), allowed_remote_ids_.end(),
-                remote_id) == allowed_remote_ids_.end()) {
-    RTC_LOG(LS_WARNING)
-        << "Chat cannot be setup since the remote user is not allowed.";
-    return;
-  }
-  if (!IsPeerConnectionChannelCreated(remote_id)) {
-    if (message.find("\"type\":\"chat-closed\"") != std::string::npos) {
-      RTC_LOG(LS_WARNING) << "Non-existed chat cannot be stopped.";
-      return;
-    }
-  } else if (message.find("\"type\":\"offer\"") != std::string::npos) {
-    auto pcc = GetPeerConnectionChannel(remote_id);
-    if (pcc->HaveLocalOffer() && local_id_.compare(remote_id) > 0) {
-      // Make the remote side as the publisher.
-      std::shared_ptr<LocalStream> stream = pcc->GetLatestLocalStream();
-      std::function<void()> success_callback =
-          pcc->GetLatestPublishSuccessCallback();
-      std::function<void(std::unique_ptr<Exception>)> failure_callback =
-          pcc->GetLatestPublishFailureCallback();
-      {
-        const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
-        pc_channels_.erase(remote_id);
-      }
-      auto new_pcc = GetPeerConnectionChannel(remote_id);
-      new_pcc->OnIncomingSignalingMessage(message);
-      new_pcc->Publish(stream, success_callback, failure_callback);
-      return;
-    }
-  } else if (message.find("\"type\":\"chat-closed\"") != std::string::npos) {
-    int code = 0;
-    std::string error = "";
-    Json::Reader reader;
-    Json::Value json_message;
-    if (reader.parse(message, json_message)) {
-      Json::Value stop_info;
-      rtc::GetValueFromJsonObject(json_message, "data", &stop_info);
-      rtc::GetIntFromJsonObject(stop_info, "code", &code);
-      rtc::GetStringFromJsonObject(stop_info, "message", &error);
-      auto pcc = GetPeerConnectionChannel(remote_id);
-      std::shared_ptr<LocalStream> stream = pcc->GetLatestLocalStream();
-      std::function<void()> success_callback =
-          pcc->GetLatestPublishSuccessCallback();
-      std::function<void(std::unique_ptr<Exception>)> failure_callback =
-          pcc->GetLatestPublishFailureCallback();
-      {
-        const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
-        pc_channels_.erase(remote_id);
-      }
-      auto new_pcc = GetPeerConnectionChannel(remote_id);
-      new_pcc->Publish(stream, success_callback, failure_callback);
-      return;
-    }
-  }
-  // Secondly dispatch the message to pcc.
-  auto pcc = GetPeerConnectionChannel(remote_id);
-  pcc->OnIncomingSignalingMessage(message);
-}  // namespace p2p
+  RTC_LOG(LS_WARNING) << "Receiving signaling message from remote:" << message;
+  std::weak_ptr<P2PClient> weak_this = shared_from_this();
+  signaling_queue_->PostTask(
+      [weak_this, remote_id, message]() {
+        auto that = weak_this.lock();
+        // First to check whether remote_id is in the allowed_remote_ids_ list.
+        if (std::find(that->allowed_remote_ids_.begin(), that->allowed_remote_ids_.end(),
+                      remote_id) == that->allowed_remote_ids_.end()) {
+          RTC_LOG(LS_WARNING)
+              << "Chat cannot be setup since the remote user is not allowed.";
+          return;
+        }
+        if (!that->IsPeerConnectionChannelCreated(remote_id)) {
+          if (message.find("\"type\":\"chat-closed\"") != std::string::npos) {
+            RTC_LOG(LS_WARNING) << "Non-existed chat cannot be stopped.";
+            return;
+          }
+        } else if (message.find("\"type\":\"offer\"") != std::string::npos) {
+          RTC_LOG(LS_ERROR) << "Received offer from remote.";
+          // If we don't have a PC before we receive an offer.
+          auto pcc = that->GetPeerConnectionChannel(remote_id);
+          if (pcc->HaveLocalOffer() && that->local_id_.compare(remote_id) > 0) {
+            // If our ID is larger than remote, make the remote side as the
+            // publisher (offerer) In case we already have an offer. So we
+            // remove current PCC and create answer.
+            std::shared_ptr<LocalStream> stream = pcc->GetLatestLocalStream();
+            std::function<void()> success_callback =
+                pcc->GetLatestPublishSuccessCallback();
+            std::function<void(std::unique_ptr<Exception>)> failure_callback =
+                pcc->GetLatestPublishFailureCallback();
+            pcc->Stop(nullptr, nullptr);
+            {
+              // If we already created offer,
+              const std::lock_guard<std::mutex> lock(that->pc_channels_mutex_);
+              that->pc_channels_.erase(remote_id);
+            }
+            auto new_pcc = that->GetPeerConnectionChannel(remote_id);
+            new_pcc->OnIncomingSignalingMessage(message);
+            new_pcc->Publish(stream, success_callback, failure_callback);
+            return;
+          }
+        } else if (message.find("\"type\":\"chat-closed\"") !=
+                   std::string::npos) {
+          RTC_LOG(LS_ERROR) << "Handle the situation that PCC is created by "
+                               "received Chat-closed.";
+          int code = 0;
+          std::string error = "";
+          Json::Reader reader;
+          Json::Value json_message;
+          if (reader.parse(message, json_message)) {
+            Json::Value stop_info;
+            rtc::GetValueFromJsonObject(json_message, "data", &stop_info);
+            rtc::GetIntFromJsonObject(stop_info, "code", &code);
+            rtc::GetStringFromJsonObject(stop_info, "message", &error);
+
+            auto pcc = that->GetPeerConnectionChannel(remote_id);
+            std::shared_ptr<LocalStream> stream = pcc->GetLatestLocalStream();
+            std::function<void()> success_callback =
+                pcc->GetLatestPublishSuccessCallback();
+            std::function<void(std::unique_ptr<Exception>)> failure_callback =
+                pcc->GetLatestPublishFailureCallback();
+            // Don't send stop to remote.
+            pcc->SetAbandoned();
+
+            {
+              const std::lock_guard<std::mutex> lock(that->pc_channels_mutex_);
+              that->pc_channels_.erase(remote_id);
+            }
+
+            auto new_pcc = that->GetPeerConnectionChannel(remote_id);
+            new_pcc->Publish(stream, success_callback, failure_callback);
+            return;
+          }
+        }
+        // Secondly dispatch the message to pcc.
+        auto pcc = that->GetPeerConnectionChannel(remote_id);
+        pcc->OnIncomingSignalingMessage(message);
+      });
+}
 void P2PClient::OnServerDisconnected() {
   EventTrigger::OnEvent0(observers_, event_queue_,
                          &P2PClientObserver::OnServerDisconnected);
@@ -293,6 +336,7 @@ void P2PClient::Unpublish(
     std::shared_ptr<LocalStream> stream,
     std::function<void()> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  const std::lock_guard<std::mutex> lock(api_lock_);
   if (!IsPeerConnectionChannelCreated(target_id)) {
     if (on_failure) {
       event_queue_->PostTask([on_failure] {
@@ -314,16 +358,16 @@ bool P2PClient::IsPeerConnectionChannelCreated(const std::string& target_id) {
   return true;
 }
 std::shared_ptr<P2PPeerConnectionChannel> P2PClient::GetPeerConnectionChannel(
-    const std::string& target_id,
-    bool replace) {
+    const std::string& target_id) {
   const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
   auto pcc_it = pc_channels_.find(target_id);
   // if the channel has already been abandoned
-  if (pcc_it != pc_channels_.end() &&
-      (replace || pcc_it->second->IsAbandoned())) {
-    pc_channels_.erase(target_id);
+  if (pcc_it != pc_channels_.end() && (pcc_it->second->IsAbandoned())) {
     pcc_it->second->DisableSendingStop();
+    pcc_it->second->RemoveObserver(nullptr);
+    pcc_it->second->Stop(nullptr, nullptr);
     pcc_it = pc_channels_.end();
+    pc_channels_.erase(target_id);
   }
   // Create new channel if it doesn't exist.
   if (pcc_it == pc_channels_.end()) {
@@ -346,6 +390,7 @@ std::shared_ptr<P2PPeerConnectionChannel> P2PClient::GetPeerConnectionChannel(
     return pcc_it->second;
   }
 }
+
 PeerConnectionChannelConfiguration
 P2PClient::GetPeerConnectionChannelConfiguration() {
   PeerConnectionChannelConfiguration config;
@@ -386,19 +431,11 @@ void P2PClient::OnMessageReceived(const std::string& remote_id,
                          message);
 }
 void P2PClient::OnStopped(const std::string& remote_id) {
-  // invoked on signaling thread. move to other thread.
-  std::thread([this, remote_id]() {
-    {
-      const std::lock_guard<std::mutex> lock(removed_pc_channels_mutex_);
-      removed_pc_channels_.push_back(pc_channels_[remote_id]);
-    }
-    {
-      const std::lock_guard<std::mutex> lock(pc_channels_mutex_);
-      pc_channels_.erase(remote_id);
-    }
-  })
-      .detach();
+  RTC_LOG(LS_WARNING) << "P2PClient::OnStopped called, removing PCC.";
+  // TODO: notify application about this?
 }
+
+// Invoked on event queue.
 void P2PClient::OnStreamAdded(std::shared_ptr<RemoteStream> stream) {
   EventTrigger::OnEvent1(
       observers_, event_queue_,
