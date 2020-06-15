@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_GLOBALCONFIGURATION_H_
 #define OWT_BASE_GLOBALCONFIGURATION_H_
+
 #include <memory>
 #include "owt/base/framegeneratorinterface.h"
+#include "owt/base/export.h"
 #if defined(WEBRTC_WIN) || defined(WEBRTC_LINUX)
 #include "owt/base/videodecoderinterface.h"
 #endif
@@ -12,11 +14,12 @@
 #include <windows.h>
 #include <d3d11.h>
 #endif
+
 namespace owt {
 namespace base {
 /** @cond */
 /// Audio processing settings.
-struct AudioProcessingSettings {
+struct OWT_EXPORT AudioProcessingSettings {
   /**
   @brief Auto echo cancellation enabling/disabling. By default enabled.
   @details If set to true, will enable auto echo cancellation.
@@ -54,7 +57,7 @@ class GlobalConfiguration {
   @brief This function sets hardware acceleration is enabled for video decoding.
   @param enabled Enbale video decoding with hardware acceleration or not.
   */
-  static void SetVideoHardwareAccelerationEnabled(bool enabled) {
+  static OWT_EXPORT void SetVideoHardwareAccelerationEnabled(bool enabled) {
     hardware_acceleration_enabled_ = enabled;
   }
 
@@ -64,7 +67,7 @@ class GlobalConfiguration {
    device will be used for creating D3D11 texture for renderer only.
    @param d3d11_device The device used for decoding.
   */
-  static void SetD3DDeviceForDecoding(ID3D11Device* d3d11_device) {
+  static OWT_EXPORT void SetD3DDeviceForDecoding(ID3D11Device* d3d11_device) {
     d3d11_decoding_device_ = d3d11_device;
   }
 #endif
@@ -72,7 +75,7 @@ class GlobalConfiguration {
    @brief This sets the link MTU
    @param mtu_size The link mtu
   */
-  static void SetLinkMTU(int mtu_size) {
+  static OWT_EXPORT void SetLinkMTU(int mtu_size) {
     link_mtu_ = mtu_size;
   }
   /**
@@ -81,7 +84,7 @@ class GlobalConfiguration {
    @param min_port minimum port number
    @param max_port maximum port number
   */
-  static void SetIcePortAllocationRange(int min_port, int max_port) {
+  static OWT_EXPORT void SetIcePortAllocationRange(int min_port, int max_port) {
     min_port_ = min_port;
     max_port_ = max_port;
   }
@@ -89,14 +92,14 @@ class GlobalConfiguration {
   @brief This function sets the SDK into low latency streaming mode.
   @param enabled Enable low latency mode or not.
   */
-  static void SetLowLatencyStreamingEnabled(bool enabled) {
+  OWT_EXPORT static void SetLowLatencyStreamingEnabled(bool enabled) {
     low_latency_streaming_enabled_ = enabled;
   }
   /**
    @brief This function enables logging of latency to file
    @param enabled Enable logging of latency to file.
   */
-  static void SetLatencyLoggingEnabled(bool enabled) {
+  static OWT_EXPORT void SetLatencyLoggingEnabled(bool enabled) {
     log_latency_to_file_enabled_ = enabled;
   }
   /** @cond */
@@ -107,7 +110,7 @@ class GlobalConfiguration {
    the encoded frame might not be sent out to remote.
    @param enabled Capturing frame is encoded or not.
    */
-  static void SetEncodedVideoFrameEnabled(bool enabled) {
+  static OWT_EXPORT void SetEncodedVideoFrameEnabled(bool enabled) {
     encoded_frame_ = enabled;
   }
   /**
@@ -115,7 +118,7 @@ class GlobalConfiguration {
    estimated bandwidth.
    @param weight The weight of delay based BWE result in range of [0, 100]
   */
-  static void SetDelayBasedBWEWeight(int weight) {
+  static OWT_EXPORT void SetDelayBasedBWEWeight(int weight) {
     delay_based_bwe_weight_ = weight;
   }
   /** @endcond */
@@ -128,7 +131,7 @@ class GlobalConfiguration {
    @param audio_frame_generator An implementation which feeds audio frames to
    SDK.
    */
-  static void SetCustomizedAudioInputEnabled(
+  static OWT_EXPORT void SetCustomizedAudioInputEnabled(
       bool enabled,
       std::unique_ptr<AudioFrameGeneratorInterface> audio_frame_generator) {
     if (enabled)
@@ -144,7 +147,7 @@ class GlobalConfiguration {
    @param num_temporal_layers Number of temporal layers for H.264. Value greater
    than 4 or smaller than 1 will be ignored.
   */
-  static void SetH264EncoderTemporalLayers(int layers) {
+  static OWT_EXPORT void SetH264EncoderTemporalLayers(int layers) {
     if (layers < 1 || layers > 4)
       return;
     h264_temporal_layers_ = layers;
@@ -153,7 +156,7 @@ class GlobalConfiguration {
    @brief This function sets the customized video decoder to decode the encoded images.
    @param Customized video decoder
    */
-  static void SetCustomizedVideoDecoderEnabled(
+  static OWT_EXPORT void SetCustomizedVideoDecoderEnabled(
       std::unique_ptr<VideoDecoderInterface> external_video_decoder) {
     video_decoder_ = std::move(external_video_decoder);
   }
@@ -162,7 +165,7 @@ class GlobalConfiguration {
   @details When it is enabled, SDK will turn on AEC functionality.
   @param enabled AEC is enabled or not.
   */
-  static void SetAECEnabled(bool enabled) {
+  static OWT_EXPORT void SetAECEnabled(bool enabled) {
     audio_processing_settings_.AECEnabled = enabled;
   }
   /**
@@ -170,7 +173,7 @@ class GlobalConfiguration {
     @details When it is enabled, SDK will turn on AEC3 functionality.
     @param enabled AEC3 is enabled or not.
     */
-  static void SetAEC3Enabled(bool enabled) {
+  static OWT_EXPORT void SetAEC3Enabled(bool enabled) {
     audio_processing_settings_.AEC3Enabled = enabled;
   }
   /**
@@ -178,7 +181,7 @@ class GlobalConfiguration {
   @details When it is enabled, SDK will turn on AGC functionality.
   @param enabled AGC is enabled or not.
   */
-  static void SetAGCEnabled(bool enabled) {
+  static OWT_EXPORT void SetAGCEnabled(bool enabled) {
     audio_processing_settings_.AGCEnabled = enabled;
   }
   /**
@@ -186,7 +189,7 @@ class GlobalConfiguration {
   @details When it is enabled, SDK will turn on NS functionality.
   @param enabled NS is enabled or not.
   */
-  static void SetNSEnabled(bool enabled) {
+  static OWT_EXPORT void SetNSEnabled(bool enabled) {
     audio_processing_settings_.NSEnabled = enabled;
   }
 

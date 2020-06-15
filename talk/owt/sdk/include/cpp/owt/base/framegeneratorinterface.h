@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_FRAMEGENERATORINTERFACE_H_
 #define OWT_BASE_FRAMEGENERATORINTERFACE_H_
+
 #include "stdint.h"
+#include "owt/base/export.h"
+
 namespace owt {
 namespace base {
 /**
@@ -13,6 +16,7 @@ namespace base {
 */
 class AudioFrameGeneratorInterface {
  public:
+  AudioFrameGeneratorInterface() {}
   /**
    @brief Generate frames for next 10ms.
    @param buffer Points to the start address for frame data. The memory is

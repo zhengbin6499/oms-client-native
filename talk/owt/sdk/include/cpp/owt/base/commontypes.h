@@ -1,18 +1,21 @@
 // Copyright (C) <2018> Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
+
 #ifndef OWT_BASE_COMMONTYPES_H_
 #define OWT_BASE_COMMONTYPES_H_
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "owt/base/export.h"
+
 namespace owt {
 namespace base {
 
 #define OWT_ENCODED_IMAGE_SIDE_DATA_SIZE_MAX 240
 
 /// Audio codec
-enum class AudioCodec : int {
+enum class OWT_EXPORT AudioCodec : int {
   kPcmu = 1,   ///< g711 u-law
   kPcma,   ///< g711 a-law
   kOpus,   ///< opus
@@ -25,7 +28,7 @@ enum class AudioCodec : int {
   kUnknown
 };
 /// Video codec
-enum class VideoCodec : int {
+enum class OWT_EXPORT VideoCodec : int {
   kVp8 = 1,
   kVp9,
   kH264,
@@ -33,18 +36,19 @@ enum class VideoCodec : int {
   kUnknown
 };
 /// Track kind
-enum class TrackKind : int{
+enum class OWT_EXPORT TrackKind : int{
   kAudio = 1,
   kVideo,
   kAudioAndVideo,
   kUnknown
 };
 /// This class represents a resolution value.
-struct Resolution {
+struct OWT_EXPORT Resolution {
   /// Construct an instance with width and height equal to 0.
   explicit Resolution(): width(0), height(0) {}
   /// Construct an instance with specify width and height.
   Resolution(unsigned long w, unsigned long h) : width(w), height(h) {}
+  virtual ~Resolution() {}
   bool operator==(const Resolution& rhs) const {
     return this->width == rhs.width && this->height == rhs.height;
   }
@@ -52,7 +56,7 @@ struct Resolution {
   unsigned long height;
 };
 /// Audio codec parameters for an audio track.
-struct AudioCodecParameters {
+struct OWT_EXPORT AudioCodecParameters {
   /// Construct an instance of AudioCodecParameters with default param.
   AudioCodecParameters()
       : name(AudioCodec::kUnknown), channel_count(0), clock_rate(0) {}
@@ -63,13 +67,14 @@ struct AudioCodecParameters {
       : name(codec_name),
         channel_count(channel_count),
         clock_rate(clock_rate) {}
+  virtual ~AudioCodecParameters() {}
   AudioCodec name;
   unsigned long channel_count;
   unsigned long clock_rate;
 };
 
 /// RTP endoding settings for a stream
-struct RtpEncodingParameters {
+struct OWT_EXPORT RtpEncodingParameters {
   // number of temporal layers requested to encoder, if supported.
   int num_temporal_layers = 1;
 
@@ -98,7 +103,7 @@ struct RtpEncodingParameters {
 };
 
 /// Audio encoding parameters.
-struct AudioEncodingParameters {
+struct OWT_EXPORT AudioEncodingParameters {
   explicit AudioEncodingParameters() : codec(), max_bitrate(0) {}
   AudioEncodingParameters(const AudioCodecParameters& codec_param,
                           unsigned long bitrate_bps)
@@ -110,19 +115,20 @@ struct AudioEncodingParameters {
   unsigned long max_bitrate;
 };
 /// Video codec parameters for a video track.
-struct VideoCodecParameters {
+struct OWT_EXPORT VideoCodecParameters {
   /// Construct an instance of VideoCodecParameters with default parameters.
   explicit VideoCodecParameters() : name(VideoCodec::kUnknown), profile("") {}
   /// Construct an instance of VideoCodecParameter with codec name and profile.
   VideoCodecParameters(const VideoCodec& codec, const std::string& profile)
       : name(codec), profile(profile) {}
+  virtual ~VideoCodecParameters() {}
   VideoCodec name;
   std::string profile;
 };
 
 /// Video encoding parameters. Used to specify the video encoding settings when
 /// publishing the video.
-struct VideoEncodingParameters {
+struct OWT_EXPORT VideoEncodingParameters {
   explicit VideoEncodingParameters()
       : codec(), max_bitrate(0), hardware_accelerated(false) {}
   /// Construct an instance of VideoEncodingParameters
@@ -134,6 +140,7 @@ struct VideoEncodingParameters {
         hardware_accelerated(hw) {}
   VideoEncodingParameters(const VideoEncodingParameters& aep) = default;
   VideoEncodingParameters& operator=(const VideoEncodingParameters&) = default;
+  virtual ~VideoEncodingParameters() {}
   VideoCodecParameters codec;
   std::vector<RtpEncodingParameters> rtp_encoding_parameters;
   unsigned long max_bitrate;
@@ -142,7 +149,7 @@ struct VideoEncodingParameters {
 /// Audio source info.
 ///
 /// This enumeration defines possible audio sources
-enum class AudioSourceInfo : int {
+enum class OWT_EXPORT AudioSourceInfo : int {
   kMic = 1,     ///< Microphone
   kScreenCast,  ///< Screen-cast
   kFile,        ///< From file
@@ -152,7 +159,7 @@ enum class AudioSourceInfo : int {
 /// Video source info.
 ///
 /// This enumeration defines possible video sources.
-enum class VideoSourceInfo : int {
+enum class OWT_EXPORT VideoSourceInfo : int {
   kCamera = 1,  ///< Camera
   kScreenCast,  ///< Screen-cast
   kFile,        ///< From file
@@ -160,19 +167,20 @@ enum class VideoSourceInfo : int {
   kUnknown
 };
 /// Stream source.
-struct StreamSourceInfo {
+struct OWT_EXPORT StreamSourceInfo {
   explicit StreamSourceInfo()
     : audio(AudioSourceInfo::kUnknown),
       video(VideoSourceInfo::kUnknown) {}
   StreamSourceInfo(AudioSourceInfo audio_source, VideoSourceInfo video_source)
     : audio(audio_source),
       video(video_source) {}
+  virtual ~StreamSourceInfo() {}
   /// The audio source info of the stream
   AudioSourceInfo audio;
   /// The video source info of the stream
   VideoSourceInfo video;
 };
-struct EnumClassHash {
+struct OWT_EXPORT EnumClassHash {
   template <typename T>
   std::size_t operator()(T t) const {
     return static_cast<std::size_t>(t);

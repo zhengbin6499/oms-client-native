@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_PUBLICATION_H_
 #define OWT_BASE_PUBLICATION_H_
+
 #include "owt/base/commontypes.h"
 #include "owt/base/exception.h"
+#include "owt/base/export.h"
 #include "owt/base/connectionstats.h"
+
 namespace owt {
 namespace base {
 /// Observer that receives event from publication.
@@ -20,6 +23,7 @@ class PublicationObserver {
   /// Triggered when an error occured on the publication.
   virtual void OnError(std::unique_ptr<Exception> failure) = 0;
 };
+
 class Publication {
  public:
   /// Pause current publication's audio or/and video basing on |track_kind| provided.

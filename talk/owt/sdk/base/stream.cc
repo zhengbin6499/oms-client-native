@@ -377,6 +377,7 @@ std::shared_ptr<LocalStream> LocalStream::Create(
       new LocalStream(parameters, std::move(framer)));
   return stream;
 }
+
 std::shared_ptr<LocalStream> LocalStream::Create(
     std::shared_ptr<LocalCustomizedStreamParameters> parameters,
     std::shared_ptr<EncodedStreamProvider> encoder) {

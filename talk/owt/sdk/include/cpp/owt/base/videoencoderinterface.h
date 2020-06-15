@@ -7,11 +7,12 @@
 #include <mutex>
 #include <vector>
 #include "owt/base/commontypes.h"
+#include "owt/base/export.h"
 
 namespace owt {
 namespace base {
 
-struct EncodedImageMetaData {
+struct OWT_EXPORT EncodedImageMetaData {
   // ctor
   EncodedImageMetaData()
         : picture_id(0),
@@ -105,7 +106,7 @@ class EncoderEventCallback {
 /**
   @brief Encoded stream provider
   */
-class EncodedStreamProvider final : public std::enable_shared_from_this<EncodedStreamProvider> {
+class OWT_EXPORT EncodedStreamProvider final : public std::enable_shared_from_this<EncodedStreamProvider> {
  public:
   static std::shared_ptr<EncodedStreamProvider> Create();
 

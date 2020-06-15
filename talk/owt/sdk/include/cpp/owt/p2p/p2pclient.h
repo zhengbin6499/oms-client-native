@@ -13,11 +13,13 @@
 #include "owt/base/clientconfiguration.h"
 #include "owt/base/commontypes.h"
 #include "owt/base/connectionstats.h"
+#include "owt/base/export.h"
 #include "owt/base/globalconfiguration.h"
 #include "owt/base/stream.h"
 #include "owt/p2p/p2ppublication.h"
 #include "owt/p2p/p2psignalingchannelinterface.h"
 #include "owt/p2p/p2psignalingsenderinterface.h"
+
 namespace rtc {
 class TaskQueue;
 class OperationsChain;
@@ -32,14 +34,14 @@ namespace p2p {
  This configuration is used while creating P2PClient. Changing this
  configuration does NOT impact P2PClient already created.
 */
-struct P2PClientConfiguration : owt::base::ClientConfiguration {
+struct OWT_EXPORT P2PClientConfiguration : owt::base::ClientConfiguration {
   std::vector<AudioEncodingParameters> audio_encodings;
   std::vector<VideoEncodingParameters> video_encodings;
 };
 class P2PPeerConnectionChannelObserverCppImpl;
 class P2PPeerConnectionChannel;
 /// Observer for P2PClient
-class P2PClientObserver {
+class OWT_EXPORT P2PClientObserver {
  public:
   /**
    @brief This function will be invoked when received data from a remote user.
@@ -60,7 +62,7 @@ class P2PClientObserver {
   virtual void OnServerDisconnected() {}
 };
 /// An async client for P2P WebRTC sessions
-class P2PClient final : protected P2PSignalingSenderInterface,
+class OWT_EXPORT P2PClient final : protected P2PSignalingSenderInterface,
                         protected P2PSignalingChannelObserver,
                         public std::enable_shared_from_this<P2PClient> {
   friend class P2PPublication;

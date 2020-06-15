@@ -3,20 +3,24 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_CONNECTIONSTATS_H_
 #define OWT_BASE_CONNECTIONSTATS_H_
+
 #include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
 #include "owt/base/commontypes.h"
+#include "owt/base/export.h"
 #include "owt/base/network.h"
+
 namespace owt {
 namespace base {
 /// Define audio sender report
-struct AudioSenderReport {
+struct OWT_EXPORT AudioSenderReport {
   AudioSenderReport(int64_t bytes_sent, int32_t packets_sent,
                     int32_t packets_lost, int64_t round_trip_time, std::string codec_name)
       : bytes_sent(bytes_sent), packets_sent(packets_sent), packets_lost(packets_lost)
       , round_trip_time(round_trip_time), codec_name(codec_name) {}
+  virtual ~AudioSenderReport() {}
   /// Audio bytes sent
   int64_t bytes_sent;
   /// Audio packets sent
@@ -29,11 +33,12 @@ struct AudioSenderReport {
   std::string codec_name;
 };
 /// Define audio receiver report
-struct AudioReceiverReport {
+struct OWT_EXPORT AudioReceiverReport {
   AudioReceiverReport(int64_t bytes_rcvd, int32_t packets_rcvd,
                       int32_t packets_lost, int32_t estimated_delay, std::string codec_name)
       : bytes_rcvd(bytes_rcvd), packets_rcvd(packets_rcvd), packets_lost(packets_lost)
       , estimated_delay(estimated_delay), codec_name(codec_name) {}
+  virtual ~AudioReceiverReport() {}
   /// Audio bytes received
   int64_t bytes_rcvd;
   /// Audio packets received
@@ -46,7 +51,7 @@ struct AudioReceiverReport {
   std::string codec_name;
 };
 /// Define video sender report
-struct VideoSenderReport {
+struct OWT_EXPORT VideoSenderReport {
   VideoSenderReport(int64_t bytes_sent, int32_t packets_sent, int32_t packets_lost,
                     int32_t fir_count, int32_t pli_count, int32_t nack_count, int32_t sent_frame_height,
                     int32_t sent_frame_width, int32_t framerate_sent, int32_t last_adapt_reason,
@@ -55,6 +60,7 @@ struct VideoSenderReport {
       , fir_count(fir_count), pli_count(pli_count), nack_count(nack_count), frame_resolution_sent(Resolution(sent_frame_width, sent_frame_height))
       , framerate_sent(framerate_sent), last_adapt_reason(last_adapt_reason)
       , adapt_changes(adapt_changes), round_trip_time(round_trip_time), codec_name(codec_name) {}
+  virtual ~VideoSenderReport() {}
   /// Define adapt reason
   enum class AdaptReason : int32_t {
     kUnknown = 0,
@@ -91,7 +97,8 @@ struct VideoSenderReport {
   std::string codec_name;
 };
 /// Define video receiver report
-struct VideoReceiverReport {
+struct OWT_EXPORT VideoReceiverReport {
+  explicit VideoReceiverReport() {}
   VideoReceiverReport(int64_t bytes_rcvd, int32_t packets_rcvd, int32_t packets_lost,
                       int32_t fir_count, int32_t pli_count, int32_t nack_count, int32_t rcvd_frame_height,
                       int32_t rcvd_frame_width, int32_t framerate_rcvd, int32_t framerate_output,
@@ -101,6 +108,12 @@ struct VideoReceiverReport {
       , frame_resolution_rcvd(Resolution(rcvd_frame_width, rcvd_frame_height))
       , framerate_rcvd(framerate_rcvd), framerate_output(framerate_output)
       , delay(delay), codec_name(codec_name), jitter(jitter) {}
+
+  virtual ~VideoReceiverReport() {}
+  
+  VideoReceiverReport(const VideoReceiverReport&) = default;
+  VideoReceiverReport& operator=(const VideoReceiverReport&) = default;
+
   /// Video bytes received
   int64_t bytes_rcvd;
   /// Video packets received
@@ -126,11 +139,12 @@ struct VideoReceiverReport {
   /// Packet Jitter measured in milliseconds
   int32_t jitter;
 };
-/// Define video bandwidth statistoms
-struct VideoBandwidthStats {
+/// Define video bandwidth statistics
+struct OWT_EXPORT VideoBandwidthStats {
   VideoBandwidthStats() : available_send_bandwidth(0), available_receive_bandwidth(0)
                         , transmit_bitrate(0), retransmit_bitrate(0)
                         , target_encoding_bitrate(0), actual_encoding_bitrate(0) {}
+  virtual ~VideoBandwidthStats() {}
   /// Available video bandwidth for sending, unit: bps
   int32_t available_send_bandwidth;
   /// Available video bandwidth for receiving, unit: bps
@@ -145,7 +159,7 @@ struct VideoBandwidthStats {
   int32_t actual_encoding_bitrate;
 };
 /// Define ICE candidate report
-struct IceCandidateReport {
+struct OWT_EXPORT IceCandidateReport {
   IceCandidateReport(const std::string& id,
                      const std::string& ip,
                      const uint16_t port,
@@ -173,7 +187,7 @@ struct IceCandidateReport {
   int32_t priority;
 };
 /// Define ICE candidate pair report.
-struct IceCandidatePairReport {
+struct OWT_EXPORT IceCandidatePairReport {
   IceCandidatePairReport(
       const std::string& id,
       const bool is_active,
@@ -183,6 +197,7 @@ struct IceCandidatePairReport {
         is_active(is_active),
         local_ice_candidate(local_ice_candidate),
         remote_ice_candidate(remote_ice_candidate) {}
+  virtual ~IceCandidatePairReport() {}
   /// The ID of this report.
   std::string id;
   /// Indicate whether transport is active.
@@ -204,12 +219,17 @@ typedef std::shared_ptr<IceCandidateReport> IceCandidateReportPtr;
 typedef std::vector<IceCandidateReportPtr> IceCandidateReports;
 typedef std::shared_ptr<IceCandidatePairReport> IceCandidatePairPtr;
 typedef std::vector<IceCandidatePairPtr> IceCandidatePairReports;
-/// Connection statistoms
-struct ConnectionStats {
+/// Connection statistics
+struct OWT_EXPORT ConnectionStats {
   ConnectionStats() {}
+
+  virtual ~ConnectionStats() {}
+
+  ConnectionStats(const ConnectionStats&) = delete;
+  ConnectionStats& operator=(const ConnectionStats&) = delete;
   /// Time stamp of connection statistics generation
   std::chrono::system_clock::time_point time_stamp = std::chrono::system_clock::now();
-  /// Video bandwidth statistoms
+  /// Video bandwidth statistics
   VideoBandwidthStats video_bandwidth_stats;
   /// Audio sender reports
   AudioSenderReports audio_sender_reports;

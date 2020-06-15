@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_LOGGING_H_
 #define OWT_BASE_LOGGING_H_
+
+#include "owt/base/export.h"
+
 namespace owt {
 namespace base {
-enum class LoggingSeverity : int {
+enum class OWT_EXPORT LoggingSeverity : int {
   /// Information which should only be logged with the consent of the user, due to privacy concerns.
   kSensitive = 1,
   /// This level is for data which we do not want to appear in the normal debug log, but should appear in diagnostic logs.
@@ -21,7 +24,7 @@ enum class LoggingSeverity : int {
 };
 /// Logger configuration class. Choose either LogToConsole or LogToFileRotate in
 /// your application for logging to console or file.
-class Logging final {
+class OWT_EXPORT Logging final {
  public:
   /// Set logging severity. All logging messages with higher severity will be
   /// logged.

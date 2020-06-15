@@ -132,7 +132,7 @@ void FunctionalStatsObserver::OnComplete(const webrtc::StatsReports& reports) {
       case  REPORT_VIDEO_RECEIVER:
       {
         std::unique_ptr<VideoReceiverReport> video_recv_report_ptr(
-            new VideoReceiverReport(
+            new owt::base::VideoReceiverReport(
                 GetValue<int64_t>(
                     &webrtc::StatsReport::Value::int64_val, report,
                     webrtc::StatsReport::kStatsValueNameBytesReceived, 0),

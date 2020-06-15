@@ -3,10 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_NETWORK_H_
 #define OWT_BASE_NETWORK_H_
+
+#include "owt/base/export.h"
+
 namespace owt {
 namespace base {
 /// Defines ICE server.
-struct IceServer {
+struct OWT_EXPORT IceServer {
   /// URLs for this group of ICE server.
   std::vector<std::string> urls;
   /// Username.
@@ -15,7 +18,7 @@ struct IceServer {
   std::string password;
 };
 /// Defines ICE candidate types.
-enum class IceCandidateType : int {
+enum class OWT_EXPORT IceCandidateType : int {
   /// Host candidate.
   kHost = 1,
   /// Server reflexive candidate.
@@ -28,7 +31,7 @@ enum class IceCandidateType : int {
   kUnknown = 99,
 };
 /// Defines transport protocol.
-enum class TransportProtocolType : int {
+enum class OWT_EXPORT TransportProtocolType : int {
   /// TCP.
   kTcp = 1,
   /// UDP.

@@ -23,12 +23,14 @@ EncodedVideoEncoderFactory::CreateVideoEncoder(
     const webrtc::SdpVideoFormat& format) {
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName) ||
       absl::EqualsIgnoreCase(format.name, cricket::kVp9CodecName) ||
-      absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName))
-    return CustomizedVideoEncoderProxy::Create();
+      absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName)
 #ifndef DISABLE_H265
-  if (absl::EqualsIgnoreCase(format.name, cricket::kH265CodecName))
-    return CustomizedVideoEncoderProxy::Create();
+      || absl::EqualsIgnoreCase(format.name, cricket::kH265CodecName)
 #endif
+  ) {
+    return CustomizedVideoEncoderProxy::Create();
+  }
+
   return nullptr;
 }
 

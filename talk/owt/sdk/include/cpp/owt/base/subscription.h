@@ -3,8 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_SUBSCRIPTION_H_
 #define OWT_BASE_SUBSCRIPTION_H_
+
 #include "owt/base/commontypes.h"
+#include "owt/base/export.h"
 #include "owt/base/mediaconstraints.h"
+
 namespace owt {
 namespace base {
 /// Observer that receives events from subscription.

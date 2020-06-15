@@ -5,6 +5,7 @@
 #define OWT_BASE_CLOCK_H_
 
 #include <stdint.h>
+#include "owt/base/export.h"
 
 namespace webrtc {
 class Clock;
@@ -16,8 +17,8 @@ namespace base {
 /// A Wrapper of webrtc::Clock.
 class Clock {
  public:
-  explicit Clock();
-  int64_t TimeInMilliseconds();
+  OWT_EXPORT Clock();
+  OWT_EXPORT int64_t TimeInMilliseconds();
 
  private:
    webrtc::Clock* clock_;

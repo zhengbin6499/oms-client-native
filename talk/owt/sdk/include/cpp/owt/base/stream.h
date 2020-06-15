@@ -3,17 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_STREAM_H_
 #define OWT_BASE_STREAM_H_
+
 #include <mutex>
 #include <unordered_map>
 #include <vector>
 #include "owt/base/commontypes.h"
 #include "owt/base/exception.h"
+#include "owt/base/export.h"
 #include "owt/base/localcamerastreamparameters.h"
 #include "owt/base/macros.h"
 #include "owt/base/options.h"
 #include "owt/base/videoencoderinterface.h"
-//#include "owt/base/videorendererinterface.h"
 #include "owt/base/audioplayerinterface.h"
+
 namespace webrtc {
 class MediaStreamInterface;
 class VideoTrackSourceInterface;
@@ -40,7 +42,7 @@ class VideoRenderWindow;
 class VideoRendererInterface;
 using webrtc::MediaStreamInterface;
 /// Observer for Stream
-class StreamObserver {
+class OWT_EXPORT StreamObserver {
  public:
   /// Triggered when a stream is ended, or the stream is no longer available in
   /// conference mode.
@@ -58,7 +60,7 @@ class WebrtcAudioRendererImpl;
 class WebrtcVideoRendererD3D11Impl;
 #endif
 /// Base class of all streams with media stream
-class Stream {
+class OWT_EXPORT Stream {
  public:
   Stream(MediaStreamInterface* media_stream, StreamSourceInfo source);
   /** @cond */
@@ -145,7 +147,7 @@ class Stream {
   mutable std::mutex observer_mutex_;
   std::vector<std::reference_wrapper<StreamObserver>> observers_;
 };
-class LocalScreenStreamObserver {
+class OWT_EXPORT LocalScreenStreamObserver {
  public:
   /**
   @brief Event callback for local screen stream to request for a source from
@@ -164,7 +166,7 @@ class LocalScreenStreamObserver {
   @brief This class represents a local stream.
   @details A local stream can be published to remote side.
 */
-class LocalStream : public Stream {
+class OWT_EXPORT LocalStream : public Stream {
  public:
 #if !defined(WEBRTC_WIN)
   LocalStream();
@@ -278,7 +280,7 @@ class LocalStream : public Stream {
   @details A remote is published from a remote client or MCU. Do not construct
   remote stream outside SDK.
 */
-class RemoteStream : public Stream {
+class OWT_EXPORT RemoteStream : public Stream {
   friend class owt::conference::ConferencePeerConnectionChannel;
   friend class owt::conference::ConferenceClient;
   friend class owt::conference::ConferenceInfo;

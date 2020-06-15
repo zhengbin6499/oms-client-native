@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_VIDEORENDERERINTERFACE_H_
 #define OWT_BASE_VIDEORENDERERINTERFACE_H_
+
 #include <memory>
 #include "owt/base/commontypes.h"
+#include "owt/base/export.h"
 #if defined(WEBRTC_WIN)
 #include <d3d11.h>
 #include <windows.h>
@@ -12,20 +14,21 @@
 #if defined(WEBRTC_LINUX)
 #include <X11/Xlib.h>
 #endif
+
 namespace owt {
 namespace base {
-enum class VideoBufferType {
+enum class OWT_EXPORT VideoBufferType {
   kI420,
   kARGB,
   kD3D11Handle,
 };
-enum class VideoRendererType {
+enum class OWT_EXPORT VideoRendererType {
   kI420,
   kARGB,
   kD3D11Handle,
 };
 /// Video buffer and its information
-struct VideoBuffer {
+struct OWT_EXPORT VideoBuffer {
   /// Video buffer. If is native, 
    void* buffer;
   /// Resolution for the Video buffer
@@ -41,7 +44,7 @@ struct VideoBuffer {
 };
 /// VideoRenderWindow wraps a native Window handle
 #if defined(WEBRTC_WIN)
-class VideoRenderWindow {
+class OWT_EXPORT VideoRenderWindow {
  public:
   VideoRenderWindow() : wnd_(nullptr) {}
   virtual ~VideoRenderWindow() {}
@@ -60,7 +63,7 @@ class VideoRenderWindow {
 };
 #endif
 #if defined(WEBRTC_LINUX)
-class VideoRenderWindow {
+class OWT_EXPORT VideoRenderWindow {
  public:
   VideoRenderWindow() : wnd_(0) {}
   virtual ~VideoRenderWindow() {}
@@ -88,13 +91,13 @@ class VideoRendererInterface {
   virtual VideoRendererType Type() = 0;
 };
 #if defined(WEBRTC_WIN)
-struct D3D11Handle {
+struct OWT_EXPORT D3D11Handle {
   ID3D11Texture2D* texture;
   ID3D11Device* d3d11_device;
   ID3D11VideoDevice* d3d11_video_device;
   ID3D11VideoContext* context;
 };
-struct D3D11VAHandle {
+struct OWT_EXPORT D3D11VAHandle {
   ID3D11Texture2D* texture;
   int array_index;
   ID3D11Device* d3d11_device;

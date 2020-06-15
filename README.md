@@ -17,24 +17,22 @@ You need [Doxygen](http://www.doxygen.nl/) in your path.
 ### Prepare the development environment
 Before you start, make sure you have following prerequisites installed/built:
 
-- [WebRTC stack build dependencies](https://webrtc.googlesource.com/src/+/refs/heads/master/docs/native-code/development/prerequisite-sw/index.md).
-- [OpenSSL 1.1.0l or higher](https://www.openssl.org/source/).
-
-Following dependencies are for Windows only:
-
-- [Boost 1.67.0 or higher](https://www.boost.org/users/download/).
-- [Intel Media SDK for Windows, version 2018 R1 or higher](https://software.intel.com/en-us/media-sdk/choose-download/client).
+- [WebRTC stack build dependencies](https://webrtc.org/native-code/development/prerequisite-sw/).
+- This version of cloudgaming webrtc stack require Windows SDK version 16299 to build. Make sure you have that particular version installed, and check in "Control Panel -> Programs and Features -> Windows Software Development Kit - Windows 10.0.16299.xx", right click and select "Change", check "Debugging tools for Windows" if not already.
+- If you do not have direct Internet access to Google repositories and storages, please make sure you set HTTPS_PROXY in your system enviroment;
+- Also make sure NO_AUTH_BOTO_CONFIG is set to correct boto file if you're using https proxy for gsutil downloading files from Google storage;
+- Make sure DEPOT_TOOLS_WIN_TOOLCHAIN is set to 0 in your system environment.
 
 ### Get the code
-- Make sure you clone the source code to `src` dir.
-- Create file named .gclient under the same directory of `src` dir, with below contents:
+- Make sure you clone the source code to `src` dir, that is: that is `git clone -b cloudgaming-83 https://github.com/taste1981/oms-client-native src`
+- Create file named .gclient in the same directory as `src` dir, with below contents:
 
 ```
 solutions = [ 
   {  
      "managed": False,  
      "name": "src",  
-     "url": "https://github.com/open-webrtc-toolkit/owt-client-native.git",  
+     "url": "https://github.com/taste1981/oms-client-native.git",
      "custom_deps": {},  
      "deps_file": "DEPS",  
      "safesync_url": "",  
@@ -45,27 +43,64 @@ target_os = []
 
 ### Build
 #### Windows
-- Set environmental variable `BOOST_ROOT` to your boost source tree.
-- Run `gclient sync`. It may take a long time to download large amount of data.
-- Go to src/srcitps/ directory, and run: `python build-win.py --gn_gen --sdk --tests --ssl_root /path/to/ssl --msdk_root /path/to/msdk --output_path /path/to/out`. The built binary will be under `output_path`, the document for sdk will also be copied to this directory if docs has been generated. If not set `output_path`, the built binary will be under src/out directory. Be noted the first time you run this would take a long time to pull chromium/webrtc dependencies and require a network accessible to Google's code/storage infrastructure. `ssl_root` to the directory of your OpenSSL 1.1.0 binary. `msdk_root` to the directory of your Intel Media SDK for Windows, version 2018 R1 or higher. `gn_gen` to generate args.gn, you need to add `--gn_gen` at the first time build or when you changed `msdk_root` and `ssl_root` path.
+- Run `gclient sync` in the directory that contains 'src'. It may take a long time to download large amount of data. It may well fail when downloading build tools from Google storage. Check your boto file settings and proxy settings, and re-run `gclient sync` to retry.
 
-#### Linux
-- Run `gclient sync`. It may take a long time to download large amount of data.
-- Go to src/srcitps/ directory, and run: `python build_linux.py --gn_gen --sdk --tests --ssl_root /path/to/ssl --output_path /path/to/out`. The built binary will be under `output_path`, the document for sdk will also be copied to this directory if docs has been generated. If not set `output_path`, the built binary will be under src/out directory. Be noted the first time you run this would take a long time to pull chromium/webrtc dependencies and require a network accessible to Google's code/storage infrastructure. `ssl_root` to the directory of your OpenSSL 1.1.0 binary. `gn_gen` to generate args.gn, you need to add `--gn_gen` at the first time build or when you changed `ssl_root` path.
+- Go to 'src' directory, and run `gn args out/release-x64' for release build. On the prompted config setting, set: 
+````
+rtc_use_h264 = true
+rtc_use_h265 = true
+is_component_build = false
+use_lld = false
+rtc_include_tests = false
+woogeen_include_tests = false
+rtc_build_examples = false
+rtc_enable_protobuf = false
+use_rtti = false
+is_clang = false
+treat_warnings_as_errors = false
+target_cpu = "x64"
+is_debug = false
+````
+- If you wish to use the Intel GPRA BWE library, you need to add three additional variables, shown below. The lib root should be the directory that contains `gpra_lib.lib`, and the header root should be directory that contains `grpa_bwe.h`. Using the // syntax, the path is relative to your `src` directory. You can also use absolute paths.
+```
+owt_gpra_lib_root = "//path/to/libs/x64"
+owt_gpra_header_root = "//path/to/include"
+owt_use_gpra = true
+```
+- Run `ninja -C out/release-x64` to finish the build. Output owt.lib will be under out/release-x64/obj/owt/talk/owt.lib; rename it to owt-release.lib for copying to cloud-gaming dependency directories.
+- Copy the header files under src/talk/owt/sdk/include/cpp/ to the cloud-gaming include directories.
 
-#### iOS
-- Run `gclient sync`. It may take a long time to download large amount of data.
-- Build OWT iOS SDK with `scripts\build.py`.
+Please be noted the same stack can be used to build the client-side SDK as well. In that case, please add below extra config settigs when runnnig `gn args out/release-x64`:
+````
+ffmpeg_branding = "Chrome"
+woogeen_msdk_header_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\include"
+woogeen_msdk_lib_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\lib\\x64"
+````
+Please modify the woogeen_msdk_header_root and woogeen_msdk_lib_root value according to actual Media SDK installation path. Latest Media SDK for Windows can be downloaded from: [Intel Media SDK](https://software.intel.com/en-us/media-sdk/).
 
-#### Android
-This branch does not support Android build, please switch to `4.2.x` branch.
+Typically when building for client-side SDK we would require openssl to be used. In that case, please add following settings to your gn args (for example):
+````
+woogeen_use_openssl = true
+woogeen_openssl_header_root = "C:\ssl_110h_64\include"
+woogeen_openssl_lib_root = "C:\ssl_110h_64\lib"
+````
 
+You should point to openssl's installation dir instead of source dir here.
+
+On both server-side and client side, if you would like to turn on telemetry for webrtc, following gn args needs to be included (for example):
+````
+owt_use_gauge = true
+owt_gauge_header_root = "d:\telemetry"
+````
+
+The gauge header root is the folder that contains "measure.h" that defines all possible telemetry metrics. At runtime, we would require gauge.dll to be present, and TELEMETRY_WEBRTC_ENABLE environmental
+variable to be set to "1" to turn telemetry on.
 
 ## How to contribute
 We warmly welcome community contributions to owt-client-native repository. If you are willing to contribute your features and ideas to OWT, follow the process below:
 
 - Make sure your patch will not break anything, including all the build and tests.
-- Submit a pull request onto [Pull Requests](https://github.com/open-webrtc-toolkit/owt-client-native/pulls).
+- Submit a pull request onto [Pull Requests](https://github.com/taste1981/oms-client-native/pulls).
 - Watch your patch for review comments if any, until it is accepted and merged.
 
 OWT project is licensed under Apache License, Version 2.0. By contributing to the project, you **agree** to the license and copyright terms therein and release your contributions under these terms.
@@ -75,4 +110,4 @@ Use the "Issues" tab on Github.
 
 ## See Also
 http://webrtc.intel.com
-
+ 

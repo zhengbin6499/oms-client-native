@@ -4,17 +4,20 @@
 
 #ifndef OWT_P2P_SIGNALINGCHANNELINTERFACE_H_
 #define OWT_P2P_SIGNALINGCHANNELINTERFACE_H_
+
 #include <functional>
 #include <memory>
 #include <string>
 #include "owt/base/exception.h"
+#include "owt/base/export.h"
+
 namespace owt {
 namespace p2p {
 using namespace owt::base;
 /**
  @brief Signaling channel will notify observer when event triggers.
  */
-class P2PSignalingChannelObserver {
+class OWT_EXPORT P2PSignalingChannelObserver {
  public:
   /**
    @brief This function will be triggered when new message arrives.
@@ -32,7 +35,7 @@ class P2PSignalingChannelObserver {
  @brief Protocol for signaling channel.
  Developers may utilize their own signaling server by implmenting this protocol.
  */
-class P2PSignalingChannelInterface {
+class OWT_EXPORT P2PSignalingChannelInterface {
  public:
   /**
    @brief Add an observer for P2PSignalingChannel

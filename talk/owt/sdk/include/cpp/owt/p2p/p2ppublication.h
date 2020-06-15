@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_P2P_PUBLICATION_H_
 #define OWT_P2P_PUBLICATION_H_
+
 #include <vector>
 #include <mutex>
 #include "owt/base/commontypes.h"
+#include "owt/base/export.h"
 #include "owt/base/mediaconstraints.h"
 #include "owt/base/publication.h"
+
 namespace rtc {
 class TaskQueue;
 }
@@ -15,7 +18,7 @@ namespace owt {
 namespace p2p {
 using namespace owt::base;
 class P2PClient;
-class P2PPublication : public Publication {
+class OWT_EXPORT P2PPublication : public Publication {
  public:
   P2PPublication(std::shared_ptr<P2PClient> client, std::string target_id, std::shared_ptr<LocalStream> stream);
   virtual ~P2PPublication() {}

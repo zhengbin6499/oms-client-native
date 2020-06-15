@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef OWT_BASE_EXCEPTION_H_
 #define OWT_BASE_EXCEPTION_H_
+
 #include <string>
+#include "owt/base/export.h"
+
 namespace owt {
 namespace base{
 // TODO: The following exceptions need to sync with other SDKs
-enum class ExceptionType : int {
+enum class OWT_EXPORT ExceptionType : int {
   kUnknown = 1000, // General exception
   // kLocal* for local stream exceptions
   kLocalUnknown = 1100,
@@ -32,7 +35,7 @@ enum class ExceptionType : int {
   kConferenceInvalidSession
 };
 /// Class for exceptions
-class Exception {
+class OWT_EXPORT Exception {
  public:
   /// Default constructor for exceptions.
   Exception();

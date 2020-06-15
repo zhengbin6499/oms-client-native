@@ -10,7 +10,7 @@ namespace base {
 /**
  @brief Video encoded frame definition
 */
-struct VideoEncodedFrame {
+struct OWT_EXPORT VideoEncodedFrame {
   /// Encoded frame buffer
   const uint8_t* buffer;
   /// Encoded frame buffer length
