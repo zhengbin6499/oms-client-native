@@ -1,17 +1,30 @@
-From f61466beb53c4c18dc17a39f5f529e4dc6c9b6a3 Mon Sep 17 00:00:00 2001
+From 7f271969045488764f868f2fb1e0e27cd3ef343f Mon Sep 17 00:00:00 2001
 From: Qiu Jainlin <jianlin.qiu@intel.com>
 Date: Fri, 8 May 2020 13:01:23 +0800
 Subject: [PATCH] Fix missing ffmpeg configure item for msvc build
 
 ---
- chromium/config/Chrome/win-msvc/x64/config.h | 2 ++
- ffmpeg_generated.gni                         | 6 ++++++
- 2 files changed, 8 insertions(+)
+ chromium/config/Chrome/win-msvc/ia32/config.h | 18 +++++++------
+ chromium/config/Chrome/win-msvc/x64/config.h  | 18 +++++++------
+ ffmpeg_generated.gni                          | 26 +++++++++++++++++++
+ libavcodec/dxva2.c                            |  1 +
+ 4 files changed, 47 insertions(+), 16 deletions(-)
 
-diff --git a/chromium/config/Chrome/win-msvc/x64/config.h b/chromium/config/Chrome/win-msvc/x64/config.h
-index 359682176a..fbf47ab570 100644
---- a/chromium/config/Chrome/win-msvc/x64/config.h
-+++ b/chromium/config/Chrome/win-msvc/x64/config.h
+diff --git a/chromium/config/Chrome/win-msvc/ia32/config.h b/chromium/config/Chrome/win-msvc/ia32/config.h
+index 90497d03b1..45e2ea2f7a 100644
+--- a/chromium/config/Chrome/win-msvc/ia32/config.h
++++ b/chromium/config/Chrome/win-msvc/ia32/config.h
+@@ -504,8 +504,8 @@
+ #define CONFIG_CRYSTALHD 0
+ #define CONFIG_CUDA 0
+ #define CONFIG_CUVID 0
+-#define CONFIG_D3D11VA 0
+-#define CONFIG_DXVA2 0
++#define CONFIG_D3D11VA 1
++#define CONFIG_DXVA2 1
+ #define CONFIG_FFNVCODEC 0
+ #define CONFIG_NVDEC 0
+ #define CONFIG_NVENC 0
 @@ -1030,6 +1030,7 @@
  #define CONFIG_XMA1_DECODER 0
  #define CONFIG_XMA2_DECODER 0
@@ -28,15 +41,119 @@ index 359682176a..fbf47ab570 100644
  #define CONFIG_ROQ_DPCM_ENCODER 0
  #define CONFIG_ADPCM_ADX_ENCODER 0
  #define CONFIG_ADPCM_G722_ENCODER 0
+@@ -1393,16 +1395,16 @@
+ #define CONFIG_VP9_VAAPI_ENCODER 0
+ #define CONFIG_H263_VAAPI_HWACCEL 0
+ #define CONFIG_H263_VIDEOTOOLBOX_HWACCEL 0
+-#define CONFIG_H264_D3D11VA_HWACCEL 0
+-#define CONFIG_H264_D3D11VA2_HWACCEL 0
+-#define CONFIG_H264_DXVA2_HWACCEL 0
++#define CONFIG_H264_D3D11VA_HWACCEL 1
++#define CONFIG_H264_D3D11VA2_HWACCEL 1
++#define CONFIG_H264_DXVA2_HWACCEL 1
+ #define CONFIG_H264_NVDEC_HWACCEL 0
+ #define CONFIG_H264_VAAPI_HWACCEL 0
+ #define CONFIG_H264_VDPAU_HWACCEL 0
+ #define CONFIG_H264_VIDEOTOOLBOX_HWACCEL 0
+-#define CONFIG_HEVC_D3D11VA_HWACCEL 0
+-#define CONFIG_HEVC_D3D11VA2_HWACCEL 0
+-#define CONFIG_HEVC_DXVA2_HWACCEL 0
++#define CONFIG_HEVC_D3D11VA_HWACCEL 1
++#define CONFIG_HEVC_D3D11VA2_HWACCEL 1
++#define CONFIG_HEVC_DXVA2_HWACCEL 1
+ #define CONFIG_HEVC_NVDEC_HWACCEL 0
+ #define CONFIG_HEVC_VAAPI_HWACCEL 0
+ #define CONFIG_HEVC_VDPAU_HWACCEL 0
+diff --git a/chromium/config/Chrome/win-msvc/x64/config.h b/chromium/config/Chrome/win-msvc/x64/config.h
+index 359682176a..a180056a8a 100644
+--- a/chromium/config/Chrome/win-msvc/x64/config.h
++++ b/chromium/config/Chrome/win-msvc/x64/config.h
+@@ -504,8 +504,8 @@
+ #define CONFIG_CRYSTALHD 0
+ #define CONFIG_CUDA 0
+ #define CONFIG_CUVID 0
+-#define CONFIG_D3D11VA 0
+-#define CONFIG_DXVA2 0
++#define CONFIG_D3D11VA 1
++#define CONFIG_DXVA2 1
+ #define CONFIG_FFNVCODEC 0
+ #define CONFIG_NVDEC 0
+ #define CONFIG_NVENC 0
+@@ -1030,6 +1030,7 @@
+ #define CONFIG_XMA1_DECODER 0
+ #define CONFIG_XMA2_DECODER 0
+ #define CONFIG_PCM_ALAW_DECODER 1
++#define CONFIG_PCM_VIDC_DECODER 0
+ #define CONFIG_PCM_BLURAY_DECODER 0
+ #define CONFIG_PCM_DVD_DECODER 0
+ #define CONFIG_PCM_F16LE_DECODER 0
+@@ -1313,6 +1314,7 @@
+ #define CONFIG_PCM_U24LE_ENCODER 0
+ #define CONFIG_PCM_U32BE_ENCODER 0
+ #define CONFIG_PCM_U32LE_ENCODER 0
++#define CONFIG_PCM_VIDC_ENCODER 0
+ #define CONFIG_ROQ_DPCM_ENCODER 0
+ #define CONFIG_ADPCM_ADX_ENCODER 0
+ #define CONFIG_ADPCM_G722_ENCODER 0
+@@ -1393,16 +1395,16 @@
+ #define CONFIG_VP9_VAAPI_ENCODER 0
+ #define CONFIG_H263_VAAPI_HWACCEL 0
+ #define CONFIG_H263_VIDEOTOOLBOX_HWACCEL 0
+-#define CONFIG_H264_D3D11VA_HWACCEL 0
+-#define CONFIG_H264_D3D11VA2_HWACCEL 0
+-#define CONFIG_H264_DXVA2_HWACCEL 0
++#define CONFIG_H264_D3D11VA_HWACCEL 1
++#define CONFIG_H264_D3D11VA2_HWACCEL 1
++#define CONFIG_H264_DXVA2_HWACCEL 1
+ #define CONFIG_H264_NVDEC_HWACCEL 0
+ #define CONFIG_H264_VAAPI_HWACCEL 0
+ #define CONFIG_H264_VDPAU_HWACCEL 0
+ #define CONFIG_H264_VIDEOTOOLBOX_HWACCEL 0
+-#define CONFIG_HEVC_D3D11VA_HWACCEL 0
+-#define CONFIG_HEVC_D3D11VA2_HWACCEL 0
+-#define CONFIG_HEVC_DXVA2_HWACCEL 0
++#define CONFIG_HEVC_D3D11VA_HWACCEL 1
++#define CONFIG_HEVC_D3D11VA2_HWACCEL 1
++#define CONFIG_HEVC_DXVA2_HWACCEL 1
+ #define CONFIG_HEVC_NVDEC_HWACCEL 0
+ #define CONFIG_HEVC_VAAPI_HWACCEL 0
+ #define CONFIG_HEVC_VDPAU_HWACCEL 0
 diff --git a/ffmpeg_generated.gni b/ffmpeg_generated.gni
-index 95ea908153..ab9cb51ada 100644
+index 95ea908153..05073b8a38 100644
 --- a/ffmpeg_generated.gni
 +++ b/ffmpeg_generated.gni
-@@ -532,6 +532,12 @@ if ((is_mac && ffmpeg_branding == "Chrome") || (is_win && current_cpu == "x64" &
+@@ -253,6 +253,26 @@ if ((is_mac && ffmpeg_branding == "Chrome") || (is_win && ffmpeg_branding == "Ch
+     "libavcodec/h264idct.c",
+     "libavcodec/h264qpel.c",
+     "libavcodec/startcode.c",
++    "libavcodec/hevc_cabac.c",
++    "libavcodec/hevc_data.c",
++    "libavcodec/hevc_parse.c",
++    "libavcodec/hevc_parser.c",
++    "libavcodec/hevc_ps.c",
++    "libavcodec/hevc_refs.c",
++    "libavcodec/hevc_sei.c",
++    "libavcodec/hevcdec.c",
++    "libavcodec/hevcdsp.c",
++    "libavcodec/hevcpred.c",
++  ]
++}
++
++if (is_win && (current_cpu == "x64" || current_cpu == "x86") && ffmpeg_branding == "Chrome") {
++  ffmpeg_c_sources += [
++    "libavcodec/dxva2.c",
++    "libavcodec/dxva2_h264.c",
++    "libavcodec/dxva2_hevc.c",
++    "libavutil/hwcontext_d3d11va.c",
++    "libavutil/hwcontext_dxva2.c",
    ]
  }
  
-+if (is_win && current_cpu == "x64") {
+@@ -532,6 +552,12 @@ if ((is_mac && ffmpeg_branding == "Chrome") || (is_win && current_cpu == "x64" &
+   ]
+ }
+ 
++if (is_win && (current_cpu == "x64" || current_cpu == "x86")) {
 +  ffmpeg_asm_sources += [
 +    "libavutil/x86/emms.asm",
 +  ]
@@ -45,6 +162,18 @@ index 95ea908153..ab9cb51ada 100644
  if ((use_linux_config && current_cpu == "mips64el" && ffmpeg_branding == "Chrome") || (use_linux_config && current_cpu == "mips64el" && ffmpeg_branding == "ChromeOS") || (use_linux_config && current_cpu == "mipsel" && ffmpeg_branding == "Chrome") || (use_linux_config && current_cpu == "mipsel" && ffmpeg_branding == "ChromeOS")) {
    ffmpeg_c_sources += [
      "libavcodec/mips/aacdec_mips.c",
+diff --git a/libavcodec/dxva2.c b/libavcodec/dxva2.c
+index 32416112bf..7c33e89dd4 100644
+--- a/libavcodec/dxva2.c
++++ b/libavcodec/dxva2.c
+@@ -640,6 +640,7 @@ int ff_dxva2_common_frame_params(AVCodecContext *avctx,
+         AVD3D11VAFramesContext *frames_hwctx = frames_ctx->hwctx;
+ 
+         frames_hwctx->BindFlags |= D3D11_BIND_DECODER;
++        frames_hwctx->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+     }
+ #endif
+ 
 -- 
 2.24.1.windows.2
 
