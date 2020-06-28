@@ -294,14 +294,14 @@ void P2PClient::OnSignalingMessage(const std::string& message,
                 pcc->GetLatestPublishFailureCallback();
             // Don't send stop to remote.
             pcc->SetAbandoned();
-
             {
               const std::lock_guard<std::mutex> lock(that->pc_channels_mutex_);
               that->pc_channels_.erase(remote_id);
             }
-
-            auto new_pcc = that->GetPeerConnectionChannel(remote_id);
-            new_pcc->Publish(stream, success_callback, failure_callback);
+            // TODO: for cloudgaming we do automatically re-publish the stream.
+            // Recheck this with cases when client-side are started first.
+            //auto new_pcc = that->GetPeerConnectionChannel(remote_id);
+            //new_pcc->Publish(stream, success_callback, failure_callback);
             return;
           }
         }
