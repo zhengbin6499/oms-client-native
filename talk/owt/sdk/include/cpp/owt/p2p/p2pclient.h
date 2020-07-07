@@ -51,15 +51,26 @@ class OWT_EXPORT P2PClientObserver {
   virtual void OnMessageReceived(const std::string& remote_user_id,
                                  const std::string message) {}
   /**
+   @brief This function will be invoked when received binary from a remote user.
+   @param remote_user_id Remote user's ID
+   @param data Data binary received
+  */
+  virtual void OnBinaryReceived(const std::string& remote_user_id,
+                                const std::vector<uint8_t>& data) {};
+  /**
    @brief This function will be invoked when a remote stream is available.
    @param stream The remote stream added.
    */
   virtual void OnStreamAdded(std::shared_ptr<owt::base::RemoteStream> stream) {}
   /**
-   @brief This function will be invoked when client is disconnected from
+   @brief This function will be invoked when current client is disconnected from
    signaling server.
    */
   virtual void OnServerDisconnected() {}
+  /**
+   @brief This function will be invoked when local published stream is stopped.
+   */
+  virtual void OnStreamStopped(const std::string& remote_user_id) {}
 };
 /// An async client for P2P WebRTC sessions
 class OWT_EXPORT P2PClient final : protected P2PSignalingSenderInterface,
@@ -196,6 +207,23 @@ class OWT_EXPORT P2PClient final : protected P2PSignalingSenderInterface,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
   /**
+  @brief Send binary data to remote client.
+  @param target_id Remote user's ID.
+  @param data The binary data to be sent.
+  @param on_success Success callback will be invoked if send
+                 deny event successfully.
+  @param on_failure Failure callback will be invoked if one of
+  the following cases happened.
+  1. P2PClient is disconnected from the server.
+  2. Target ID is null or target user is offline.
+  3. There is no WebRTC session with target user.
+  4. The sending buffer is full.
+  */
+  void Send(const std::string& target_id,
+            const std::vector<uint8_t>& data,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
+  /**
    @brief Get the connection statistics with target client.
    @param target_id Remote user's ID.
    @param on_success Success callback will be invoked if get statistoms
@@ -232,6 +260,8 @@ class OWT_EXPORT P2PClient final : protected P2PSignalingSenderInterface,
   // Currently, data is string.
   virtual void OnMessageReceived(const std::string& remote_id,
                                  const std::string& message);
+  virtual void OnBinaryReceived(const std::string& remote_id,
+                        const std::vector<uint8_t>& binary);
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(std::shared_ptr<owt::base::RemoteStream> stream);
 

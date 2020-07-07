@@ -199,6 +199,7 @@ void P2PPeerConnectionChannel::Publish(
   {
     std::lock_guard<std::mutex> lock(published_streams_mutex_);
     publishing_streams_.insert(stream_label);
+    stream_published_ = true;
   }
   RTC_LOG(LS_INFO) << "Session state: " << session_state_;
   if (on_success) {
@@ -293,6 +294,70 @@ void P2PPeerConnectionChannel::Send(
     }
   }
 }
+
+void P2PPeerConnectionChannel::Send(
+    const std::vector<uint8_t>& binary,
+    bool is_reliable,
+    std::function<void()> on_success,
+    std::function<void(std::unique_ptr<Exception>)> on_failure) {
+  const std::lock_guard<std::mutex> lock(api_lock_);
+  if (ended_)
+    return;
+  // Send chat-closed to workaround known browser bugs, together with
+  // user agent information once and once only.
+  if (IsAbandoned() || block_data_send_) {
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Send not allowed when remote disconnected."));
+        on_failure(std::move(e));
+      });
+    }
+    CleanLastPeerConnection();
+    return;
+  }
+  if (stop_send_needed_) {
+    SendStop(on_success, on_failure);
+    stop_send_needed_ = false;
+  }
+  if (!ua_sent_) {
+    SendUaInfo();
+    ua_sent_ = true;
+  }
+  // Binary must be sent over reliable data channel.
+  if (is_reliable) {
+    if (data_channel_ != nullptr &&
+        data_channel_->state() ==
+            webrtc::DataChannelInterface::DataState::kOpen) {
+      data_channel_->Send(CreateDataBuffer(binary));
+      if (on_success) {
+        on_success();
+      }
+    } else {
+      {
+        std::lock_guard<std::mutex> lock(pending_binaries_mutex_);
+        rtc::CopyOnWriteBuffer shared_buffer(binary.data(), binary.size());
+        pending_binaries_.push_back(
+            std::tuple<rtc::CopyOnWriteBuffer, std::function<void()>,
+                       std::function<void(std::unique_ptr<Exception>)>>{
+                shared_buffer, on_success, on_failure});
+      }
+      if (data_channel_ == nullptr)  // Otherwise, wait for data channel ready.
+        CreateDataChannel(kDataChannelLabelForTextMessage);
+    }
+  } else {
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Data message must be sent reliably."));
+        on_failure(std::move(e));
+      });
+    }
+  }
+}
+
 void P2PPeerConnectionChannel::ChangeSessionState(SessionState state) {
   RTC_LOG(LS_INFO) << "PeerConnectionChannel change session state : " << state;
   session_state_ = state;
@@ -500,6 +565,23 @@ void P2PPeerConnectionChannel::OnMessageStop() {
       }
     }
     pending_messages_.clear();
+  }
+  {
+    std::lock_guard<std::mutex> lock(pending_binaries_mutex_);
+    for (auto it = pending_binaries_.begin(); it != pending_binaries_.end();
+         ++it) {
+      std::function<void(std::unique_ptr<Exception>)> on_failure;
+      std::tie(std::ignore, std::ignore, on_failure) = *it;
+      if (on_failure) {
+        event_queue_->PostTask([on_failure] {
+          std::unique_ptr<Exception> e(
+              new Exception(ExceptionType::kP2PClientInvalidArgument,
+                            "Stop message received."));
+          on_failure(std::move(e));
+        });
+      }
+    }
+    pending_binaries_.clear();
   }
   {
     std::lock_guard<std::mutex> lock(pending_control_messages_mutex_);
@@ -951,10 +1033,10 @@ bool P2PPeerConnectionChannel::CheckNullPointer(
 void P2PPeerConnectionChannel::TriggerOnStopped() {
   // TriggerOnStopped might be called in signalng thread. Post it to event queue
   // instead.
-  if (!ended_ || local_stop_triggered_)
-    return;
-
   local_stop_triggered_ = true;
+
+  if (!stream_published_)
+    return;
   // P2PClient will likely remove our reference
   for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it =
            observers_.begin();
@@ -1277,13 +1359,26 @@ void P2PPeerConnectionChannel::OnDataChannelStateChange() {
       webrtc::DataChannelInterface::DataState::kOpen) {
     DrainPendingMessages();
   }
+  if (control_data_channel_ != nullptr &&
+      control_data_channel_->state() ==
+          webrtc::DataChannelInterface::DataState::kOpen) {
+    DrainPendingControlMessages();
+  }
 }
 void P2PPeerConnectionChannel::OnDataChannelMessage(
     const webrtc::DataBuffer& buffer) {
   if (ended_)
     return;
   if (buffer.binary) {
-    RTC_LOG(LS_WARNING) << "Binary data is not supported.";
+    const std::vector<uint8_t> binary(
+        buffer.data.data<uint8_t>(),
+        buffer.data.data<uint8_t>() + buffer.data.size());
+    for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it =
+             observers_.begin();
+         it != observers_.end(); ++it) {
+      (*it)->OnBinaryReceived(remote_id_, binary);
+    }
+    RTC_LOG(LS_INFO) << "Received binary";
     return;
   }
   std::string data = std::string(buffer.data.data<char>(), buffer.data.size());
@@ -1336,6 +1431,12 @@ void P2PPeerConnectionChannel::CreateDataChannel(const std::string& label) {
   OnNegotiationNeeded();
 }
 webrtc::DataBuffer P2PPeerConnectionChannel::CreateDataBuffer(
+    const std::vector<uint8_t>& binary) {
+  rtc::CopyOnWriteBuffer buffer(binary.data(), binary.size());
+  webrtc::DataBuffer data_buffer(buffer, true);
+  return data_buffer;
+}
+webrtc::DataBuffer P2PPeerConnectionChannel::CreateDataBuffer(
     const std::string& data) {
   rtc::CopyOnWriteBuffer buffer(data.c_str(), data.length());
   webrtc::DataBuffer data_buffer(buffer, false);
@@ -1360,6 +1461,21 @@ void P2PPeerConnectionChannel::DrainPendingMessages() {
       }
     }
     pending_messages_.clear();
+  }
+  {
+    std::lock_guard<std::mutex> lock(pending_binaries_mutex_);
+    for (auto it = pending_binaries_.begin(); it != pending_binaries_.end();
+         ++it) {
+      rtc::CopyOnWriteBuffer data;
+      std::function<void()> on_success;
+      std::tie(data, on_success, std::ignore) = *it;
+      webrtc::DataBuffer data_buffer(data, true);
+      data_channel_->Send(data_buffer);
+      if (on_success) {
+        on_success();
+      }
+    }
+    pending_binaries_.clear();
   }
 }
 void P2PPeerConnectionChannel::DrainPendingControlMessages() {

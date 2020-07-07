@@ -107,11 +107,20 @@ void PeerConnectionDependencyFactory::
                   std::to_string(h264_temporal_layers) + std::string("/");
   int link_mtu = GlobalConfiguration::GetLatencyLoggingEnabled();
   if (link_mtu > 0) {
-    field_trial_ += "OWT-LinkMTU/" + std::to_string(link_mtu) + "/";
+    field_trial_ +=
+        "OWT-LinkMTU/" + std::to_string(link_mtu) + std::string("/");
   }
-  int delay_bwe_weight = GlobalConfiguration::GetDelayBasedBweWeight();
-  field_trial_ +=
-      "OWT-DelayBweWeight/" + std::to_string(delay_bwe_weight) + "/";
+  // Handle the rate limits.
+  if (GlobalConfiguration::GetExternalBandwidthEstimationEnabled()) {
+    field_trial_ += "OWT-ExternalBwe/Enabled/";
+  }
+  int start_bitrate, min_bitrate, max_bitrate;
+  GlobalConfiguration::GetBWERateLimits(start_bitrate, min_bitrate,
+                                        max_bitrate);
+  if (start_bitrate > 0 || min_bitrate > 0 || max_bitrate > 0)
+  field_trial_ += "OWT-BweRateLimits/Enabled-" + std::to_string(start_bitrate) + "," +
+                  std::to_string(min_bitrate) + "," +
+                  std::to_string(max_bitrate) + "/";
   webrtc::field_trial::InitFieldTrialsFromString(field_trial_.c_str());
   if (!rtc::InitializeSSL()) {
     RTC_LOG(LS_ERROR) << "Failed to initialize SSL.";

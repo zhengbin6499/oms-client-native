@@ -137,7 +137,8 @@ int32_t CustomizedFramesCapturer::StartCapture(
     return 0;
 
   rtc::CritScope lock(&capture_lock_);
-  if (!frames_generator_thread_) {
+  // Only start frame generator thread for raw input.
+  if (!frames_generator_thread_ && frame_generator_.get()) {
     quit_ = false;
     frames_generator_thread_.reset(new CustomizedFramesThread(this, fps_));
 
@@ -222,7 +223,7 @@ void CustomizedFramesCapturer::OnStreamProviderFrame(
     memcpy(encoder_context->meta_data_.encoded_image_sidedata_get(),
            meta_data.encoded_image_sidedata_get(),
            meta_data.encoded_image_sidedata_size());
-    // sidedata will be freed by encoder proxy.
+    // sidedata in encoder context will be freed by encoder proxy.
   }
   uint8_t* frame_buffer = new uint8_t[buffer.size()];
   std::copy(buffer.begin(), buffer.end(), frame_buffer);

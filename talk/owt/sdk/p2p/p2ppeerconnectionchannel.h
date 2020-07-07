@@ -30,6 +30,8 @@ class P2PPeerConnectionChannelObserver {
   // Currently, data is string.
   virtual void OnMessageReceived(const std::string& remote_id,
                                  const std::string& message) = 0;
+  virtual void OnBinaryReceived(const std::string& remote_id,
+                        const std::vector<uint8_t>& binary) = 0;
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(std::shared_ptr<RemoteStream> stream) = 0;
   // Triggered when the WebRTC session is ended.
@@ -79,6 +81,10 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
             bool is_reliable,
             std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
+  void Send(const std::vector<uint8_t>& data,
+            bool is_reliable,
+            std::function<void()> on_success,
+            std::function<void(std::unique_ptr<Exception>)> on_failure);
   // Stop current WebRTC session.
   void Stop(std::function<void()> on_success,
             std::function<void(std::unique_ptr<Exception>)> on_failure);
@@ -108,7 +114,6 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   void OnMessageTrackSources(Json::Value& track_sources);
   void OnMessageStreamInfo(Json::Value& stream_info);
   void OnMessageTracksAdded(Json::Value& stream_tracks);
-  void OnMessageDataReceived(std::string& id);
   // PeerConnectionObserver
   virtual void OnSignalingChange(
       PeerConnectionInterface::SignalingState new_state) override;
@@ -161,6 +166,7 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
       uintptr_t pointer,
       std::function<void(std::unique_ptr<Exception>)> on_failure);
   webrtc::DataBuffer CreateDataBuffer(const std::string& data);
+  webrtc::DataBuffer CreateDataBuffer(const std::vector<uint8_t>& binary);
   void CreateDataChannel(const std::string& label);
   // Send all messages in pending message list.
   void DrainPendingMessages();
@@ -223,6 +229,11 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   // Protects |pending_messages_|.
   // Protects |pending_messages_|.
   std::mutex pending_messages_mutex_;
+  std::vector<std::tuple<rtc::CopyOnWriteBuffer,
+                         std::function<void()>,
+                         std::function<void(std::unique_ptr<Exception>)>>>
+      pending_binaries_;
+  std::mutex pending_binaries_mutex_;
   std::vector<std::tuple<std::shared_ptr<std::string>,
                          std::function<void()>,
                          std::function<void(std::unique_ptr<Exception>)>>>
@@ -261,6 +272,7 @@ class P2PPeerConnectionChannel : public P2PSignalingReceiverInterface,
   std::atomic<bool> ended_;
   bool local_stop_triggered_ = false;
   mutable std::mutex api_lock_;
+  bool stream_published_ = false;
 };
 }  // namespace p2p
 }  // namespace owt

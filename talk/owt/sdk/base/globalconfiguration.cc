@@ -15,6 +15,10 @@ int GlobalConfiguration::max_port_ = 0; // not set;
 bool GlobalConfiguration::low_latency_streaming_enabled_ = false;
 bool GlobalConfiguration::log_latency_to_file_enabled_ = false;
 bool GlobalConfiguration::encoded_frame_ = false;
+bool GlobalConfiguration::external_bandwidth_estimation_enabled_ = true;
+int GlobalConfiguration::start_bitrate_kbps_ = 0; // not set
+int GlobalConfiguration::min_bitrate_kbps_ = 0; // not set
+int GlobalConfiguration::max_bitrate_kbps_ = 0; // not set
 
 int GlobalConfiguration::delay_based_bwe_weight_ = 100;
 std::unique_ptr<AudioFrameGeneratorInterface>
