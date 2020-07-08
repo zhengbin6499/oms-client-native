@@ -868,6 +868,7 @@ void P2PPeerConnectionChannel::OnIceConnectionChange(
     case webrtc::PeerConnectionInterface::kIceConnectionFailed:
       // It might take a long time before PC switch to these two states.
       remote_side_offline_ = true;
+      TriggerOnStopped();
       break;
     default:
       break;
@@ -1033,6 +1034,8 @@ bool P2PPeerConnectionChannel::CheckNullPointer(
 void P2PPeerConnectionChannel::TriggerOnStopped() {
   // TriggerOnStopped might be called in signalng thread. Post it to event queue
   // instead.
+  if (local_stop_triggered_)
+    return;
   local_stop_triggered_ = true;
 
   if (!stream_published_)

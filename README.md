@@ -4,7 +4,7 @@
 Open WebRTC Toolkit client SDK for native Windows/Linux/iOS applications are built upon the W3C WebRTC standard to accelerate the development of real time communication applications on these platforms. It supports peer to peer and conference mode communication working with Open Media Stream MCU server.
 
 - Supported Windows platform: Windows 7 and above.
-- Supported Linux platform: Ubuntu 16.04.
+- Supported Linux platform: Ubuntu 16.04 with GCC 7.
 - Supported iOS platform: iOS 9.0 and above.
 
 ## Documentation
@@ -18,10 +18,10 @@ You need [Doxygen](http://www.doxygen.nl/) in your path.
 Before you start, make sure you have following prerequisites installed/built:
 
 - [WebRTC stack build dependencies](https://webrtc.org/native-code/development/prerequisite-sw/).
-- This version of cloudgaming webrtc stack require Windows SDK version 16299 to build. Make sure you have that particular version installed, and check in "Control Panel -> Programs and Features -> Windows Software Development Kit - Windows 10.0.16299.xx", right click and select "Change", check "Debugging tools for Windows" if not already.
+- This version of cloudgaming webrtc stack require Windows SDK version 16299 or higher to build. Make sure you have required version installed, and check in "Control Panel -> Programs and Features -> Windows Software Development Kit - Windows 10.0.16299.xx", right click and select "Change", check "Debugging tools for Windows" if not already.
 - If you do not have direct Internet access to Google repositories and storages, please make sure you set HTTPS_PROXY in your system enviroment;
 - Also make sure NO_AUTH_BOTO_CONFIG is set to correct boto file if you're using https proxy for gsutil downloading files from Google storage;
-- Make sure DEPOT_TOOLS_WIN_TOOLCHAIN is set to 0 in your system environment.
+- Make sure DEPOT_TOOLS_WIN_TOOLCHAIN is set to 0 in your system environment if you're building for Windows.
 
 ### Get the code
 - Make sure you clone the source code to `src` dir, that is: that is `git clone -b cloudgaming-83 https://github.com/taste1981/oms-client-native src`
@@ -44,6 +44,7 @@ target_os = []
 ### Build
 #### Windows
 - Run `gclient sync` in the directory that contains 'src'. It may take a long time to download large amount of data. It may well fail when downloading build tools from Google storage. Check your boto file settings and proxy settings, and re-run `gclient sync` to retry.
+At the end of gclient sync process, the patches under `talk/owt/patches/` will be applied. Make sure the patches are correctly applied before you proceed with the build process.
 
 - Go to 'src' directory, and run `gn args out/release-x64' for release build. On the prompted config setting, set: 
 ````
@@ -55,6 +56,7 @@ rtc_include_tests = false
 woogeen_include_tests = false
 rtc_build_examples = false
 rtc_enable_protobuf = false
+ffmpeg_branding = "Chrome"
 use_rtti = false
 is_clang = false
 treat_warnings_as_errors = false
@@ -72,29 +74,20 @@ owt_use_gpra = true
 
 Please be noted the same stack can be used to build the client-side SDK as well. In that case, please add below extra config settigs when runnnig `gn args out/release-x64`:
 ````
-ffmpeg_branding = "Chrome"
-woogeen_msdk_header_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\include"
-woogeen_msdk_lib_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\lib\\x64"
+owt_msdk_header_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\include"
+owt_msdk_lib_root = "c:\Program Files (x86)\IntelSWTools\Intel(R) Media SDK 2018 R2\Software Development Kit\\lib\\x64"
 ````
 Please modify the woogeen_msdk_header_root and woogeen_msdk_lib_root value according to actual Media SDK installation path. Latest Media SDK for Windows can be downloaded from: [Intel Media SDK](https://software.intel.com/en-us/media-sdk/).
 
-Typically when building for client-side SDK we would require openssl to be used. In that case, please add following settings to your gn args (for example):
+Typically when building for client-side SDK we would require openssl to be used (For server-side, this can also be enabled).
+In that case, please add following settings to your gn args (for example):
 ````
-woogeen_use_openssl = true
-woogeen_openssl_header_root = "C:\ssl_110h_64\include"
-woogeen_openssl_lib_root = "C:\ssl_110h_64\lib"
+owt_use_openssl = true
+owt_openssl_header_root = "C:\ssl_110h_64\include"
+owt_openssl_lib_root = "C:\ssl_110h_64\lib"
 ````
 
 You should point to openssl's installation dir instead of source dir here.
-
-On both server-side and client side, if you would like to turn on telemetry for webrtc, following gn args needs to be included (for example):
-````
-owt_use_gauge = true
-owt_gauge_header_root = "d:\telemetry"
-````
-
-The gauge header root is the folder that contains "measure.h" that defines all possible telemetry metrics. At runtime, we would require gauge.dll to be present, and TELEMETRY_WEBRTC_ENABLE environmental
-variable to be set to "1" to turn telemetry on.
 
 ## How to contribute
 We warmly welcome community contributions to owt-client-native repository. If you are willing to contribute your features and ideas to OWT, follow the process below:
