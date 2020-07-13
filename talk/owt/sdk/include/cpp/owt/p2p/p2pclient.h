@@ -6,17 +6,17 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 #include <vector>
-#include <set>
+#include "owt/base/clientconfiguration.h"
 #include "owt/base/commontypes.h"
 #include "owt/base/connectionstats.h"
+#include "owt/base/globalconfiguration.h"
 #include "owt/base/stream.h"
 #include "owt/p2p/p2ppublication.h"
 #include "owt/p2p/p2psignalingchannelinterface.h"
 #include "owt/p2p/p2psignalingsenderinterface.h"
-#include "owt/base/clientconfiguration.h"
-#include "owt/base/globalconfiguration.h"
 namespace rtc {
   class TaskQueue;
 }

@@ -41,8 +41,7 @@ MSDKVideoDecoderFactory::~MSDKVideoDecoderFactory() {
 std::unique_ptr<webrtc::VideoDecoder> MSDKVideoDecoderFactory::CreateVideoDecoder(
     const webrtc::SdpVideoFormat& format) {
 
-  if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName) ||
-      absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName)) {
+  if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName)) {
     return MSDKVideoDecoder::Create(cricket::VideoCodec(format));
   } else if (absl::EqualsIgnoreCase(format.name, cricket::kVp9CodecName)) {
     return webrtc::VP9Decoder::Create();

@@ -4,8 +4,15 @@
 
 // Seems we cannot reorder the header inclusion. Otherwise
 // SendMessage will fail compilation.
+#include "talk/owt/sdk/include/cpp/owt/p2p/p2pclient.h"
 #include <algorithm>
 #include <future>
+#include "talk/owt/sdk/base/eventtrigger.h"
+#include "talk/owt/sdk/base/stringutils.h"
+#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannelobservercppimpl.h"
+#include "talk/owt/sdk/p2p/p2psignalingsenderimpl.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/checks.h"
 #include "webrtc/rtc_base/critical_section.h"
@@ -13,13 +20,6 @@
 #include "webrtc/rtc_base/strings/json.h"
 #include "webrtc/rtc_base/task_queue.h"
 #include "webrtc/rtc_base/third_party/base64/base64.h"
-#include "talk/owt/sdk/base/eventtrigger.h"
-#include "talk/owt/sdk/base/stringutils.h"
-#include "talk/owt/sdk/include/cpp/owt/base/stream.h"
-#include "talk/owt/sdk/include/cpp/owt/p2p/p2pclient.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannelobservercppimpl.h"
-#include "talk/owt/sdk/p2p/p2psignalingsenderimpl.h"
 
 using namespace rtc;
 namespace owt {

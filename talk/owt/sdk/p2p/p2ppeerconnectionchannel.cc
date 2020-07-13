@@ -227,7 +227,7 @@ void P2PPeerConnectionChannel::Send(
     return;
   }
   if (stop_send_needed_) {
-    SendStop(nullptr, nullptr);
+    SendStop(on_success, on_failure);
     stop_send_needed_ = false;
   }
   if (!ua_sent_) {
@@ -970,20 +970,17 @@ void P2PPeerConnectionChannel::Stop(
     case kSessionStateConnecting:
     case kSessionStateConnected:
       ClosePeerConnection();
-      if (stop_send_needed_)
-        SendStop(nullptr, nullptr);
+      SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       break;
     case kSessionStateMatched:
-      if (stop_send_needed_)
-        SendStop(nullptr, nullptr);
+      SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       break;
     case kSessionStateOffered:
-      if (stop_send_needed_)
-        SendStop(nullptr, nullptr);
+      SendStop(nullptr, nullptr);
       stop_send_needed_ = false;
       ChangeSessionState(kSessionStateReady);
       TriggerOnStopped();
