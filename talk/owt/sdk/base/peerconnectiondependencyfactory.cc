@@ -97,6 +97,13 @@ void PeerConnectionDependencyFactory::
       GlobalConfiguration::GetAEC3Enabled()) {
     field_trial_ += "OWT-EchoCanceller3/Enabled/";
   }
+  if (GlobalConfiguration::GetLowLatencyStreamingEnabled()) {
+    field_trial_ += "OWT-LowLatencyMode/Enabled/";
+  }
+  int link_mtu = GlobalConfiguration::GetLinkMTU();
+  if (link_mtu > 0) {
+    field_trial_ += "OWT-LinkMTU/" + std::to_string(link_mtu) + "/";
+  }
   // Set H.264 temporal layers. Ideally it should be set via RtpSenderParam
   int h264_temporal_layers = GlobalConfiguration::GetH264TemporalLayers();
   field_trial_ +=
@@ -180,6 +187,13 @@ void PeerConnectionDependencyFactory::
       std::move(decoder_factory), nullptr,
       nullptr);  // Decoder factory
 #elif defined(WEBRTC_WIN) || defined(WEBRTC_LINUX)
+  // If still video factory is not in place, use internal factory.
+  if (!encoder_factory.get()) {
+    encoder_factory = webrtc::CreateBuiltinVideoEncoderFactory();
+  }
+  if (!decoder_factory.get()) {
+    decoder_factory = webrtc::CreateBuiltinVideoDecoderFactory();
+  }
   pc_factory_ = webrtc::CreatePeerConnectionFactory(
       network_thread.get(), worker_thread.get(), signaling_thread.get(), adm,
       webrtc::CreateBuiltinAudioEncoderFactory(),

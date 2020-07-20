@@ -497,7 +497,7 @@ void P2PPeerConnectionChannel::OnMessageStop() {
         });
       }
     }
-    pending_messages_.clear();
+    pending_control_messages_.clear();
   }
 }
 void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
@@ -1015,18 +1015,6 @@ void P2PPeerConnectionChannel::GetConnectionStats(
     }
     return;
   }
-  if (session_state_ != kSessionStateConnected) {
-    if (on_failure != nullptr) {
-      event_queue_->PostTask([on_failure] {
-        std::unique_ptr<Exception> e(
-            new Exception(ExceptionType::kP2PClientInvalidState,
-                          "Cannot get connection stats in this state. Please "
-                          "try it after connection is established."));
-        on_failure(std::move(e));
-      });
-    }
-    return;
-  }
   rtc::scoped_refptr<FunctionalStatsObserver> observer =
       FunctionalStatsObserver::Create(std::move(on_success));
   GetStatsMessage* stats_message = new GetStatsMessage(
@@ -1044,18 +1032,6 @@ void P2PPeerConnectionChannel::GetStats(
             new Exception(ExceptionType::kP2PClientInvalidArgument,
                           "on_success cannot be nullptr. Please provide "
                           "on_success to get connection stats data."));
-        on_failure(std::move(e));
-      });
-    }
-    return;
-  }
-  if (session_state_ != kSessionStateConnected) {
-    if (on_failure != nullptr) {
-      event_queue_->PostTask([on_failure] {
-        std::unique_ptr<Exception> e(
-            new Exception(ExceptionType::kP2PClientInvalidState,
-                          "Cannot get connection stats in this state. Please "
-                          "try it after connection is established."));
         on_failure(std::move(e));
       });
     }
