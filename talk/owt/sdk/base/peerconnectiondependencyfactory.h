@@ -4,25 +4,29 @@
 #ifndef OWT_BASE_PEERCONNECTIONDEPENDENCYFACTORY_H_
 #define OWT_BASE_PEERCONNECTIONDEPENDENCYFACTORY_H_
 #include <mutex>
-#include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/media_stream_interface.h"
-#include "webrtc/sdk/media_constraints.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/p2p/base/basic_packet_socket_factory.h"
 #include "webrtc/rtc_base/bind.h"
 #include "webrtc/rtc_base/network.h"
-#include "webrtc/p2p/base/basic_packet_socket_factory.h"
+#include "webrtc/sdk/media_constraints.h"
+#if defined(WEBRTC_WIN)
+#include "webrtc/api/task_queue/task_queue_factory.h"
+#include "webrtc/modules/audio_device/win/audio_device_core_win.h"
+#endif
 namespace owt {
 namespace base {
-using webrtc::MediaStreamInterface;
-using webrtc::AudioDeviceModule;
-using webrtc::AudioTrackInterface;
-using webrtc::AudioSourceInterface;
-using webrtc::VideoTrackInterface;
-using webrtc::VideoTrackSourceInterface;
-using webrtc::PeerConnectionFactoryInterface;
-using webrtc::MediaConstraints;
+using rtc::Bind;
 using rtc::scoped_refptr;
 using rtc::Thread;
-using rtc::Bind;
+using webrtc::AudioDeviceModule;
+using webrtc::AudioSourceInterface;
+using webrtc::AudioTrackInterface;
+using webrtc::MediaConstraints;
+using webrtc::MediaStreamInterface;
+using webrtc::PeerConnectionFactoryInterface;
+using webrtc::VideoTrackInterface;
+using webrtc::VideoTrackSourceInterface;
 // PeerConnectionThread allows blocking calls so other thread can invoke
 // synchronized methods on this thread.
 class PeerConnectionThread : public rtc::Thread {
@@ -57,10 +61,12 @@ class PeerConnectionDependencyFactory : public rtc::RefCountInterface {
   rtc::scoped_refptr<PeerConnectionFactoryInterface> PeerConnectionFactory()
       const;
   ~PeerConnectionDependencyFactory();
+
  protected:
   explicit PeerConnectionDependencyFactory();
   virtual const rtc::scoped_refptr<PeerConnectionFactoryInterface>&
   GetPeerConnectionFactory();
+
  private:
   // Create a PeerConnectionDependencyFactory instance.
   // static rtc::scoped_refptr<PeerConnectionDependencyFactory> Create();
@@ -72,7 +78,8 @@ class PeerConnectionDependencyFactory : public rtc::RefCountInterface {
       webrtc::PeerConnectionObserver* observer);
   void CreateNetworkMonitorOnCurrentThread();
 #if defined(WEBRTC_WIN) || defined(WEBRTC_LINUX)
-  rtc::scoped_refptr<webrtc::AudioDeviceModule> CreateCustomizedAudioDeviceModuleOnCurrentThread();
+  rtc::scoped_refptr<webrtc::AudioDeviceModule>
+  CreateCustomizedAudioDeviceModuleOnCurrentThread();
 #endif
   scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
   static scoped_refptr<PeerConnectionDependencyFactory>
@@ -95,7 +102,11 @@ class PeerConnectionDependencyFactory : public rtc::RefCountInterface {
   std::string field_trial_;
   std::shared_ptr<rtc::BasicNetworkManager> network_manager_;
   std::shared_ptr<rtc::BasicPacketSocketFactory> packet_socket_factory_;
+#if defined(WEBRTC_WIN)
+  std::unique_ptr<webrtc::ScopedCOMInitializer> com_initializer_;
+  std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
+#endif
 };
-}
+}  // namespace base
 }  // namespace owt
 #endif  // OWT_BASE_PEERCONNECTIONDEPENDENCYFACTORY_H_
