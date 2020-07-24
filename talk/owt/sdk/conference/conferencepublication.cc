@@ -69,7 +69,7 @@ void ConferencePublication::Unmute(
    }
 }
 void ConferencePublication::GetStats(
-    std::function<void(std::shared_ptr<ConnectionStats>)> on_success,
+    std::function<void(std::shared_ptr<RTCStatsReport>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
    auto that = conference_client_.lock();
    if (that == nullptr || ended_) {

@@ -5,13 +5,45 @@
 #define OWT_BASE_FUNCTIONALOBSERVER_H_
 #include <functional>
 #include <unordered_map>
+#include "talk/owt/sdk/include/cpp/owt/base/connectionstats.h"
 #include "webrtc/api/jsep.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/rtc_error.h"
 #include "webrtc/api/scoped_refptr.h"
-#include "talk/owt/sdk/include/cpp/owt/base/connectionstats.h"
+#include "webrtc/api/stats/rtc_stats_collector_callback.h"
+#include "webrtc/api/stats/rtc_stats_report.h"
+#include "webrtc/rtc_base/logging.h"
+
 namespace owt {
 namespace base {
+
+#define OWT_STATS_VALUE_OR_DEFAULT(webrtc_stats, member_name, member_type, default_value)    \
+  webrtc_stats.member_name.is_defined() ?                                                    \
+      *(webrtc_stats.member_name                                                             \
+              .cast_to<webrtc::RTCStatsMember<member_type>>()) : default_value
+
+    // A webrtc::RTCStatsCollectorCallback implementation
+    class FunctionalStandardRTCStatsCollectorCallback
+    : public webrtc::RTCStatsCollectorCallback {
+ public:
+  static rtc::scoped_refptr<FunctionalStandardRTCStatsCollectorCallback> Create(
+      std::function<void(std::shared_ptr<owt::base::RTCStatsReport>)>
+          on_stats_delivered);
+
+  void OnStatsDelivered(
+      const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report) override;
+
+ protected:
+  FunctionalStandardRTCStatsCollectorCallback(
+      std::function<void(std::shared_ptr<owt::base::RTCStatsReport>)>
+          on_stats_delivered)
+      : on_stats_delivered_(on_stats_delivered) {}
+
+ private:
+  std::function<void(std::shared_ptr<owt::base::RTCStatsReport>)>
+      on_stats_delivered_;
+};
+
 // A webrtc::CreateSessionDescriptionObserver implementation used to invoke user
 // defined function when creating description complete.
 class FunctionalCreateSessionDescriptionObserver
@@ -22,10 +54,12 @@ class FunctionalCreateSessionDescriptionObserver
       std::function<void(const std::string&)> on_failure);
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(webrtc::RTCError error);
+
  protected:
   FunctionalCreateSessionDescriptionObserver(
       std::function<void(webrtc::SessionDescriptionInterface*)> on_success,
       std::function<void(const std::string&)> on_failure);
+
  private:
   std::function<void(webrtc::SessionDescriptionInterface*)> on_success_;
   std::function<void(const std::string&)> on_failure_;
@@ -40,14 +74,17 @@ class FunctionalSetSessionDescriptionObserver
       std::function<void(const std::string&)> on_failure);
   virtual void OnSuccess();
   virtual void OnFailure(webrtc::RTCError error);
+
  protected:
   FunctionalSetSessionDescriptionObserver(
       std::function<void()> on_success,
       std::function<void(const std::string& error)> on_failure);
+
  private:
   std::function<void()> on_success_;
   std::function<void(const std::string& error)> on_failure_;
 };
+
 // A StatsObserver implementation used to invoke user defined function to
 // retrieve current statistics data.
 class FunctionalStatsObserver : public webrtc::StatsObserver {
@@ -55,9 +92,11 @@ class FunctionalStatsObserver : public webrtc::StatsObserver {
   static rtc::scoped_refptr<FunctionalStatsObserver> Create(
       std::function<void(std::shared_ptr<ConnectionStats>)> on_complete);
   virtual void OnComplete(const webrtc::StatsReports& reports);
+
  protected:
   FunctionalStatsObserver(
       std::function<void(std::shared_ptr<ConnectionStats>)> on_complete);
+
  private:
   enum ReportType {
     REPORT_AUDIO_SENDER = 1,
@@ -86,22 +125,27 @@ class FunctionalStatsObserver : public webrtc::StatsObserver {
   }
   IceCandidateType GetCandidateType(const std::string& type);
   TransportProtocolType GetTransportProtocolType(const std::string& protocol);
-  std::shared_ptr<IceCandidateReport> GetIceCandidateReport(const webrtc::StatsReport& report);
-  std::unordered_map<std::string, std::shared_ptr<IceCandidateReport>> local_candidate_map_;
-  std::unordered_map<std::string, std::shared_ptr<IceCandidateReport>> remote_candidate_map_;
+  std::shared_ptr<IceCandidateReport> GetIceCandidateReport(
+      const webrtc::StatsReport& report);
+  std::unordered_map<std::string, std::shared_ptr<IceCandidateReport>>
+      local_candidate_map_;
+  std::unordered_map<std::string, std::shared_ptr<IceCandidateReport>>
+      remote_candidate_map_;
 };
 class FunctionalNativeStatsObserver : public webrtc::StatsObserver {
  public:
   static rtc::scoped_refptr<FunctionalNativeStatsObserver> Create(
       std::function<void(const webrtc::StatsReports& reports)> on_complete);
   virtual void OnComplete(const webrtc::StatsReports& reports) override;
+
  protected:
   FunctionalNativeStatsObserver(
       std::function<void(const webrtc::StatsReports& reports)> on_complete)
-      : on_complete_(on_complete){}
+      : on_complete_(on_complete) {}
+
  private:
   std::function<void(const webrtc::StatsReports& reports)> on_complete_;
 };
-}
-}
+}  // namespace base
+}  // namespace owt
 #endif  // OWT_BASE_FUNCTIONALOBSERVER_H_

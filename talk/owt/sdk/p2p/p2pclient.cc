@@ -187,7 +187,7 @@ void P2PClient::Stop(
 }
 void P2PClient::GetConnectionStats(
     const std::string& target_id,
-    std::function<void(std::shared_ptr<owt::base::ConnectionStats>)> on_success,
+    std::function<void(std::shared_ptr<RTCStatsReport>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   if (!IsPeerConnectionChannelCreated(target_id)) {
     if (on_failure) {

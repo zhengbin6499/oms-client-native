@@ -202,7 +202,7 @@ class P2PClient final
    */
   void GetConnectionStats(
       const std::string& target_id,
-      std::function<void(std::shared_ptr<owt::base::ConnectionStats>)> on_success,
+      std::function<void(std::shared_ptr<RTCStatsReport>)> on_success,
       std::function<void(std::unique_ptr<Exception>)> on_failure);
   /** @cond */
   void SetLocalId(const std::string& local_id);

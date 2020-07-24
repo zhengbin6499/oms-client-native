@@ -751,7 +751,7 @@ void ConferencePeerConnectionChannel::Stop(
   RTC_LOG(LS_INFO) << "Stop session.";
 }
 void ConferencePeerConnectionChannel::GetConnectionStats(
-    std::function<void(std::shared_ptr<ConnectionStats>)> on_success,
+    std::function<void(std::shared_ptr<RTCStatsReport>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   if (!published_stream_ && !subscribed_stream_) {
     if (on_failure != nullptr) {
@@ -764,22 +764,16 @@ void ConferencePeerConnectionChannel::GetConnectionStats(
     }
     return;
   }
-  if (subscribed_stream_) {
-    scoped_refptr<FunctionalStatsObserver> observer =
-        FunctionalStatsObserver::Create(on_success);
-    GetStatsMessage* stats_message = new GetStatsMessage(
-        observer.get(), subscribed_stream_->MediaStream(),
-        webrtc::PeerConnectionInterface::kStatsOutputLevelStandard);
-    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeGetStats, stats_message);
-  } else {
-    scoped_refptr<FunctionalStatsObserver> observer =
-        FunctionalStatsObserver::Create(on_success);
-    GetStatsMessage* stats_message = new GetStatsMessage(
-        observer.get(), published_stream_->MediaStream(),
-        webrtc::PeerConnectionInterface::kStatsOutputLevelStandard);
-    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeGetStats, stats_message);
-  }
+
+  rtc::scoped_refptr<FunctionalStandardRTCStatsCollectorCallback> observer =
+      FunctionalStandardRTCStatsCollectorCallback::Create(
+          std::move(on_success));
+  GetStandardStatsMessage* stats_message =
+      new GetStandardStatsMessage(observer);
+  pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeGetStats, stats_message);
 }
+
+
 void ConferencePeerConnectionChannel::GetStats(
     std::function<void(const webrtc::StatsReports& reports)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {

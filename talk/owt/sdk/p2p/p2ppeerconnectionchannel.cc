@@ -1,21 +1,22 @@
 // Copyright (C) <2018> Intel Corporation
 //
 // SPDX-License-Identifier: Apache-2.0
+#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
 #include <thread>
 #include <vector>
 #include "talk/owt/sdk/base/eventtrigger.h"
 #include "talk/owt/sdk/base/functionalobserver.h"
 #include "talk/owt/sdk/base/sysinfo.h"
-#include "talk/owt/sdk/p2p/p2ppeerconnectionchannel.h"
-#include "webrtc/rtc_base/logging.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/rtc_base/logging.h"
 
 using namespace rtc;
 namespace owt {
 namespace p2p {
 using std::string;
 enum P2PPeerConnectionChannel::SessionState : int {
-  kSessionStateReady = 1,   // Indicate the channel is ready. This is the initial state.
+  kSessionStateReady =
+      1,  // Indicate the channel is ready. This is the initial state.
   kSessionStateOffered,     // Indicates local client has sent a user agent and
                             // waiting for an remote SDP.
   kSessionStatePending,     // Indicates local client received an user agent and
@@ -248,8 +249,9 @@ void P2PPeerConnectionChannel::Send(
         data_channel_->state() ==
             webrtc::DataChannelInterface::DataState::kOpen) {
       data_channel_->Send(CreateDataBuffer(data));
-      if (on_success)
-        on_success();
+      if (on_success) {
+        event_queue_->PostTask([on_success] { on_success(); });
+      }
     } else {
       {
         std::lock_guard<std::mutex> lock(pending_messages_mutex_);
@@ -445,61 +447,58 @@ void P2PPeerConnectionChannel::OnMessageStop() {
   ClosePeerConnection();
   ChangeSessionState(kSessionStateReady);
   TriggerOnStopped();
-  {
-    {
-      std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
-      for (std::unordered_map<
-               std::string,
-               std::function<void(std::unique_ptr<Exception>)>>::iterator it =
-               failure_callbacks_.begin();
-           it != failure_callbacks_.end(); it++) {
-        std::function<void(std::unique_ptr<Exception>)> failure_callback =
-            it->second;
-        event_queue_->PostTask([failure_callback] {
-          std::unique_ptr<Exception> e(
-              new Exception(ExceptionType::kP2PClientInvalidArgument,
-                            "Stop message received."));
-          failure_callback(std::move(e));
-        });
-      }
-      failure_callbacks_.clear();
-    }
+  {{std::lock_guard<std::mutex> lock(failure_callbacks_mutex_);
+  for (std::unordered_map<
+           std::string,
+           std::function<void(std::unique_ptr<Exception>)>>::iterator it =
+           failure_callbacks_.begin();
+       it != failure_callbacks_.end(); it++) {
+    std::function<void(std::unique_ptr<Exception>)> failure_callback =
+        it->second;
+    event_queue_->PostTask([failure_callback] {
+      std::unique_ptr<Exception> e(new Exception(
+          ExceptionType::kP2PClientInvalidArgument, "Stop message received."));
+      failure_callback(std::move(e));
+    });
   }
-  {
-    std::lock_guard<std::mutex> lock(pending_messages_mutex_);
-    for (auto it = pending_messages_.begin(); it != pending_messages_.end();
-         ++it) {
-      std::function<void(std::unique_ptr<Exception>)> on_failure;
-      std::tie(std::ignore, std::ignore, on_failure) = *it;
-      if (on_failure) {
-        event_queue_->PostTask([on_failure] {
-          std::unique_ptr<Exception> e(
-              new Exception(ExceptionType::kP2PClientInvalidArgument,
-                            "Stop message received."));
-          on_failure(std::move(e));
-        });
-      }
-    }
-    pending_messages_.clear();
-  }
-  {
-    std::lock_guard<std::mutex> lock(pending_control_messages_mutex_);
-    for (auto it = pending_control_messages_.begin(); it != pending_control_messages_.end();
-         ++it) {
-      std::function<void(std::unique_ptr<Exception>)> on_failure;
-      std::tie(std::ignore, std::ignore, on_failure) = *it;
-      if (on_failure) {
-        event_queue_->PostTask([on_failure] {
-          std::unique_ptr<Exception> e(
-              new Exception(ExceptionType::kP2PClientInvalidArgument,
-                            "Stop message received."));
-          on_failure(std::move(e));
-        });
-      }
-    }
-    pending_control_messages_.clear();
-  }
+  failure_callbacks_.clear();
 }
+}  // namespace p2p
+{
+  std::lock_guard<std::mutex> lock(pending_messages_mutex_);
+  for (auto it = pending_messages_.begin(); it != pending_messages_.end();
+       ++it) {
+    std::function<void(std::unique_ptr<Exception>)> on_failure;
+    std::tie(std::ignore, std::ignore, on_failure) = *it;
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Stop message received."));
+        on_failure(std::move(e));
+      });
+    }
+  }
+  pending_messages_.clear();
+}
+{
+  std::lock_guard<std::mutex> lock(pending_control_messages_mutex_);
+  for (auto it = pending_control_messages_.begin();
+       it != pending_control_messages_.end(); ++it) {
+    std::function<void(std::unique_ptr<Exception>)> on_failure;
+    std::tie(std::ignore, std::ignore, on_failure) = *it;
+    if (on_failure) {
+      event_queue_->PostTask([on_failure] {
+        std::unique_ptr<Exception> e(
+            new Exception(ExceptionType::kP2PClientInvalidArgument,
+                          "Stop message received."));
+        on_failure(std::move(e));
+      });
+    }
+  }
+  pending_control_messages_.clear();
+}
+}  // namespace owt
 void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
   RTC_LOG(LS_INFO) << "OnMessageSignal";
   string type;
@@ -542,7 +541,8 @@ void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
       set_remote_sdp_task_ = msg;
     } else {
       RTC_LOG(LS_INFO) << "Post set remote desc";
-      pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteDescription, msg);
+      pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteDescription,
+                       msg);
     }
   } else if (type == "candidates") {
     string sdp_mid;
@@ -557,7 +557,8 @@ void P2PPeerConnectionChannel::OnMessageSignal(Json::Value& message) {
     rtc::TypedMessageData<webrtc::IceCandidateInterface*>* param =
         new rtc::TypedMessageData<webrtc::IceCandidateInterface*>(
             ice_candidate);
-    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteIceCandidate, param);
+    pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeSetRemoteIceCandidate,
+                     param);
   }
 }
 void P2PPeerConnectionChannel::OnMessageTracksAdded(
@@ -732,7 +733,8 @@ void P2PPeerConnectionChannel::OnIceConnectionChange(
         } else {
           RTC_LOG(LS_INFO) << "Detect reconnection succeed.";
         }
-      }).detach();
+      })
+          .detach();
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionClosed:
       TriggerOnStopped();
@@ -902,7 +904,8 @@ bool P2PPeerConnectionChannel::CheckNullPointer(
 
 void P2PPeerConnectionChannel::TriggerOnStopped() {
   for (std::vector<P2PPeerConnectionChannelObserver*>::iterator it =
-       observers_.begin(); it != observers_.end(); it++) {
+           observers_.begin();
+       it != observers_.end(); it++) {
     (*it)->OnStopped(remote_id_);
   }
 }
@@ -1001,7 +1004,7 @@ void P2PPeerConnectionChannel::Stop(
   }
 }
 void P2PPeerConnectionChannel::GetConnectionStats(
-    std::function<void(std::shared_ptr<ConnectionStats>)> on_success,
+    std::function<void(std::shared_ptr<RTCStatsReport>)> on_success,
     std::function<void(std::unique_ptr<Exception>)> on_failure) {
   if (on_success == nullptr) {
     if (on_failure != nullptr) {
@@ -1015,11 +1018,11 @@ void P2PPeerConnectionChannel::GetConnectionStats(
     }
     return;
   }
-  rtc::scoped_refptr<FunctionalStatsObserver> observer =
-      FunctionalStatsObserver::Create(std::move(on_success));
-  GetStatsMessage* stats_message = new GetStatsMessage(
-      observer, nullptr,
-      webrtc::PeerConnectionInterface::kStatsOutputLevelStandard);
+  rtc::scoped_refptr<FunctionalStandardRTCStatsCollectorCallback> observer =
+      FunctionalStandardRTCStatsCollectorCallback::Create(
+          std::move(on_success));
+  GetStandardStatsMessage* stats_message = new GetStandardStatsMessage(
+      observer);
   pc_thread_->Post(RTC_FROM_HERE, this, kMessageTypeGetStats, stats_message);
 }
 void P2PPeerConnectionChannel::GetStats(
@@ -1249,9 +1252,9 @@ void P2PPeerConnectionChannel::DrainPendingMessages() {
          ++it) {
       std::shared_ptr<std::string> message;
       std::function<void()> on_success;
-      std::tie(message, on_success, std::ignore)=*it;
+      std::tie(message, on_success, std::ignore) = *it;
       data_channel_->Send(CreateDataBuffer(*message));
-      if(on_success){
+      if (on_success) {
         on_success();
       }
     }

@@ -3,13 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifndef WOOGEEN_BASE_PEERCONNECTIONCHANNEL_H_
 #define WOOGEEN_BASE_PEERCONNECTIONCHANNEL_H_
+
 #include <vector>
+#include "talk/owt/sdk/base/functionalobserver.h"
+#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
+#include "talk/owt/sdk/include/cpp/owt/base/commontypes.h"
+#include "webrtc/api/stats/rtc_stats.h"
+#include "webrtc/api/stats/rtc_stats_collector_callback.h"
 #include "webrtc/rtc_base/message_handler.h"
 #include "webrtc/rtc_base/third_party/sigslot/sigslot.h"
 #include "webrtc/sdk/media_constraints.h"
-#include "talk/owt/sdk/base/peerconnectiondependencyfactory.h"
-#include "talk/owt/sdk/base/functionalobserver.h"
-#include "talk/owt/sdk/include/cpp/owt/base/commontypes.h"
 namespace rtc {
 class NetworkMonitorInterface;
 }
@@ -21,9 +24,7 @@ struct SetSessionDescriptionMessage : public rtc::MessageData {
       FunctionalSetSessionDescriptionObserver* observer,
       webrtc::SessionDescriptionInterface* desc)
       : observer(observer), description(desc) {}
-  virtual ~SetSessionDescriptionMessage() {
-    delete description;
-  }
+  virtual ~SetSessionDescriptionMessage() { delete description; }
   rtc::scoped_refptr<FunctionalSetSessionDescriptionObserver> observer;
   webrtc::SessionDescriptionInterface* description;
 };
@@ -47,6 +48,13 @@ struct GetNativeStatsMessage : public rtc::MessageData {
   webrtc::MediaStreamInterface* stream;
   webrtc::PeerConnectionInterface::StatsOutputLevel level;
 };
+struct GetStandardStatsMessage : public rtc::MessageData {
+  explicit GetStandardStatsMessage(
+      FunctionalStandardRTCStatsCollectorCallback* collector_callback)
+      : stats_collector(collector_callback) {}
+  rtc::scoped_refptr<FunctionalStandardRTCStatsCollectorCallback>
+      stats_collector;
+};
 struct PeerConnectionChannelConfiguration
     : public webrtc::PeerConnectionInterface::RTCConfiguration {
  public:
@@ -62,14 +70,16 @@ class PeerConnectionChannel : public rtc::MessageHandler,
                               public sigslot::has_slots<> {
  public:
   PeerConnectionChannel(PeerConnectionChannelConfiguration configuration);
+
  protected:
   virtual ~PeerConnectionChannel();
   bool InitializePeerConnection();
   const webrtc::SessionDescriptionInterface* LocalDescription();
   PeerConnectionInterface::SignalingState SignalingState() const;
-  // Apply the bitrate settings on all tracks available. Failing to set any of them
-  // will result in a false return, with remaining settings applicable still applied.
-  // Subclasses can override this to implementation specific bitrate allocation policies.
+  // Apply the bitrate settings on all tracks available. Failing to set any of
+  // them will result in a false return, with remaining settings applicable
+  // still applied. Subclasses can override this to implementation specific
+  // bitrate allocation policies.
   void ApplyBitrateSettings();
   // Subclasses should prepare observers for these functions and post
   // message to PeerConnectionChannel.
@@ -98,14 +108,15 @@ class PeerConnectionChannel : public rtc::MessageHandler,
       PeerConnectionInterface::IceConnectionState new_state) override;
   virtual void OnIceGatheringChange(
       PeerConnectionInterface::IceGatheringState new_state) override;
-  virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
+  virtual void OnIceCandidate(
+      const webrtc::IceCandidateInterface* candidate) override;
   virtual void OnIceCandidatesRemoved(
       const std::vector<cricket::Candidate>& candidates) override;
   // DataChannelObserver proxy
   // Data channel events will be bridged to these methods to avoid name
   // conflict.
-  virtual void OnDataChannelStateChange(){}
-  virtual void OnDataChannelMessage(const webrtc::DataBuffer& buffer){}
+  virtual void OnDataChannelStateChange() {}
+  virtual void OnDataChannelMessage(const webrtc::DataBuffer& buffer) {}
   // CreateSessionDescriptionObserver
   virtual void OnCreateSessionDescriptionSuccess(
       webrtc::SessionDescriptionInterface* desc);
@@ -128,7 +139,7 @@ class PeerConnectionChannel : public rtc::MessageHandler,
     kMessageTypeAddTransceiver,
     kMessageTypeClosePeerConnection,
     kMessageTypeGetStats,
-    kMessageTypeCreateNetworkMonitor=201,
+    kMessageTypeCreateNetworkMonitor = 201,
   };
   std::unique_ptr<Thread> pc_thread_;
   PeerConnectionChannelConfiguration configuration_;
@@ -142,6 +153,7 @@ class PeerConnectionChannel : public rtc::MessageHandler,
   // most 1 audio transceiver and 1 video transceiver.
   webrtc::RtpTransceiverDirection audio_transceiver_direction_;
   webrtc::RtpTransceiverDirection video_transceiver_direction_;
+
  private:
   // DataChannelObserver
   virtual void OnStateChange() override { OnDataChannelStateChange(); }
@@ -153,6 +165,6 @@ class PeerConnectionChannel : public rtc::MessageHandler,
   rtc::scoped_refptr<PeerConnectionDependencyFactory> factory_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
 };
-}
-}
+}  // namespace base
+}  // namespace owt
 #endif  // OWT_BASE_PEERCONNECTIONCHANNEL_H_
