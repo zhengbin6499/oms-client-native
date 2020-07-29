@@ -24,7 +24,7 @@ class P2PPeerConnectionChannelObserverCppImpl
                                  const std::string& message) override;
   // Triggered when remote user send binary via data channel
   virtual void OnBinaryReceived(const std::string& remote_id,
-                        const std::vector<uint8_t>& binary);
+                        const std::vector<uint8_t>& binary) override;
   // Triggered when a new stream is added.
   virtual void OnStreamAdded(std::shared_ptr<RemoteStream> stream) override;
   // Triggered when the WebRTC session is ended.
